@@ -7,8 +7,6 @@ on:
   schedule:
     - cron: "0 5 * * *" # 每天 UTC 时间 05:00 运行（北京时间 13:00）
   workflow_dispatch:     # 支持手动触发
-  push:
-    branches: [ main ]
 
 env:
   UPSTREAM_REPO: kinai9661/Flux-AI-Pro
@@ -64,56 +62,81 @@ jobs:
           git fetch upstream ${{ env.UPSTREAM_BRANCH }}
           
           echo "=== 上游仓库最新提交 ==="
-          git log -1 --oneline upstream/${{ env.UPSTREAM_BRANCH }}
+          git log -1 --oneline upstream/${{ env.UPSTREAM_BRANCH }} || echo "无法获取上游提交"
           
           echo "=== 当前仓库最新提交 ==="
           git log -1 --oneline HEAD
 
-      - name: 📊 Compare Changes
+      - name: 📊 Check for New Commits
         if: steps.verify.outputs.accessible == 'true'
-        id: compare
+        id: check
         run: |
-          # 检查是否有新的提交需要同步
-          if git merge-base --is-ancestor HEAD upstream/${{ env.UPSTREAM_BRANCH }}; then
-            echo "✅ 当前分支已经包含所有上游更改"
-            echo "has_new_changes=false" >> $GITHUB_OUTPUT
+          # 检查上游是否有新的提交
+          LOCAL_COMMIT=$(git rev-parse HEAD)
+          UPSTREAM_COMMIT=$(git rev-parse upstream/${{ env.UPSTREAM_BRANCH }})
+          
+          echo "本地提交: $LOCAL_COMMIT"
+          echo "上游提交: $UPSTREAM_COMMIT"
+          
+          if [ "$LOCAL_COMMIT" = "$UPSTREAM_COMMIT" ]; then
+            echo "✅ 已经是最新版本，无需同步"
+            echo "needs_sync=false" >> $GITHUB_OUTPUT
           else
-            echo "🔄 检测到上游有新提交需要同步"
-            echo "has_new_changes=true" >> $GITHUB_OUTPUT
+            echo "🔄 检测到上游有新提交，需要同步"
+            echo "needs_sync=true" >> $GITHUB_OUTPUT
             
             # 显示将要同步的提交
-            echo "=== 将要同步的提交 ==="
-            git log --oneline HEAD..upstream/${{ env.UPSTREAM_BRANCH }}
+            echo "=== 新的提交 ==="
+            git log --oneline HEAD..upstream/${{ env.UPSTREAM_BRANCH }} || echo "无法显示提交历史"
           fi
 
       - name: 🔀 Merge Upstream Changes
-        if: steps.verify.outputs.accessible == 'true' && steps.compare.outputs.has_new_changes == 'true'
+        if: steps.verify.outputs.accessible == 'true' && steps.check.outputs.needs_sync == 'true'
         id: merge
         run: |
           echo "开始合并上游更改..."
           
-          # 尝试自动合并
-          if git merge --no-commit --no-ff upstream/${{ env.UPSTREAM_BRANCH }}; then
-            echo "✅ 自动合并成功"
+          # 使用 rebase 方式同步，避免空的合并提交
+          if git rebase upstream/${{ env.UPSTREAM_BRANCH }}; then
+            echo "✅ Rebase 成功"
             echo "merge_status=success" >> $GITHUB_OUTPUT
           else
-            # 检查是否有冲突
-            if git diff --check; then
-              echo "⚠️ 检测到合并冲突"
-              echo "merge_status=conflict" >> $GITHUB_OUTPUT
+            # 如果 rebase 失败，尝试 merge
+            git rebase --abort 2>/dev/null || true
+            echo "尝试使用 merge 方式..."
+            
+            if git merge --no-commit --no-ff upstream/${{ env.UPSTREAM_BRANCH }}; then
+              # 检查是否有实际更改需要提交
+              if git diff --quiet HEAD; then
+                echo "⚠️ 合并成功但没有实际更改"
+                echo "merge_status=no_changes" >> $GITHUB_OUTPUT
+                git reset --hard HEAD
+              else
+                echo "✅ 合并成功"
+                echo "merge_status=success" >> $GITHUB_OUTPUT
+              fi
             else
-              echo "❌ 合并过程中出现错误"
-              echo "merge_status=error" >> $GITHUB_OUTPUT
+              echo "❌ 合并失败，存在冲突"
+              echo "merge_status=conflict" >> $GITHUB_OUTPUT
+              git merge --abort 2>/dev/null || true
             fi
-            git merge --abort
           fi
 
-      - name: ✅ Push Successful Merge
+      - name: ✅ Push Changes
         if: steps.merge.outputs.merge_status == 'success'
         run: |
-          git commit -m "🔀 chore: auto-sync with upstream [${{ env.UPSTREAM_REPO }}@${{ env.UPSTREAM_BRANCH }}]"
+          echo "推送更改到仓库..."
           git push origin ${{ env.TARGET_BRANCH }}
           echo "✅ 同步完成！更改已推送到仓库"
+
+      - name: 📝 Create Sync Commit
+        if: steps.merge.outputs.merge_status == 'no_changes'
+        run: |
+          echo "创建同步标记提交..."
+          # 即使没有文件更改，也创建一个标记提交
+          git commit --allow-empty -m "🔀 chore: sync with upstream [${{ env.UPSTREAM_REPO }}@${{ env.UPSTREAM_BRANCH }}] - already up to date"
+          git push origin ${{ env.TARGET_BRANCH }}
+          echo "✅ 已创建同步标记"
 
       - name: ⚠️ Handle Merge Conflicts
         if: steps.merge.outputs.merge_status == 'conflict'
@@ -122,13 +145,15 @@ jobs:
           echo "================================"
           echo "无法自动同步，存在合并冲突"
           echo "请手动执行以下操作："
-          echo "1. 在本地执行: git pull upstream main"
-          echo "2. 解决所有冲突"
-          echo "3. 提交并推送到你的仓库"
+          echo ""
+          echo "git remote add upstream https://github.com/${{ env.UPSTREAM_REPO }}.git"
+          echo "git fetch upstream"
+          echo "git merge upstream/${{ env.UPSTREAM_BRANCH }}"
+          echo "# 解决冲突后"
+          echo "git add ."
+          echo "git commit -m 'Merge upstream changes'"
+          echo "git push origin main"
           echo "================================"
-          
-          # 显示冲突文件（如果有）
-          git status | grep -i "unmerged" || echo "无法获取冲突文件列表"
 
       - name: 📋 Sync Summary
         if: always()
@@ -141,18 +166,25 @@ jobs:
           echo "⬆️ 上游仓库: ${{ env.UPSTREAM_REPO }}"
           echo "🎯 目标分支: ${{ env.TARGET_BRANCH }}"
           echo "🔧 上游访问: ${{ steps.verify.outputs.accessible }}"
-          echo "📦 有新更改: ${{ steps.compare.outputs.has_new_changes }}"
+          echo "📦 需要同步: ${{ steps.check.outputs.needs_sync }}"
           echo "🔄 合并状态: ${{ steps.merge.outputs.merge_status }}"
           
           if [ "${{ steps.verify.outputs.accessible }}" = "true" ]; then
-            if [ "${{ steps.compare.outputs.has_new_changes }}" = "true" ]; then
-              if [ "${{ steps.merge.outputs.merge_status }}" = "success" ]; then
-                echo "✅ 同步成功！"
-              elif [ "${{ steps.merge.outputs.merge_status }}" = "conflict" ]; then
-                echo "⚠️ 同步失败：存在合并冲突"
-              else
-                echo "❌ 同步过程中出现错误"
-              fi
+            if [ "${{ steps.check.outputs.needs_sync }}" = "true" ]; then
+              case "${{ steps.merge.outputs.merge_status }}" in
+                "success")
+                  echo "✅ 同步成功！更改已推送"
+                  ;;
+                "no_changes")
+                  echo "ℹ️ 已同步标记：实际上已经是最新版本"
+                  ;;
+                "conflict")
+                  echo "⚠️ 同步失败：存在合并冲突"
+                  ;;
+                *)
+                  echo "❌ 同步过程中出现错误"
+                  ;;
+              esac
             else
               echo "ℹ️ 无需同步：已经是最新版本"
             fi
