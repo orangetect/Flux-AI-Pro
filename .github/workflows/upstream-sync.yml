@@ -1,23 +1,161 @@
-name: 🔍 Repository Diagnostics
+name: 🔄 Sync with kinai9661/Flux-AI-Pro
 
-on: [workflow_dispatch]
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: "0 5 * * *" # 每天 UTC 时间 05:00 运行（北京时间 13:00）
+  workflow_dispatch:     # 支持手动触发
+  push:
+    branches: [ main ]
+
+env:
+  UPSTREAM_REPO: kinai9661/Flux-AI-Pro
+  UPSTREAM_BRANCH: main
+  TARGET_BRANCH: main
 
 jobs:
-  diagnose:
+  sync-upstream:
+    name: 🔄 Sync from kinai9661/Flux-AI-Pro
     runs-on: ubuntu-latest
+    
     steps:
-      - name: 📋 Repository Information
+      - name: 🛎️ Checkout Current Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: 🛠️ Configure Git Identity
         run: |
-          echo "=== 仓库诊断信息 ==="
-          echo "当前仓库: ${{ github.repository }}"
-          echo "仓库URL: https://github.com/${{ github.repository }}"
-          echo "默认分支: ${{ github.event.repository.default_branch }}"
-          echo "是否是Fork: ${{ github.event.repository.fork }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: 🔍 Verify Upstream Access
+        id: verify
+        run: |
+          echo "验证上游仓库访问: ${{ env.UPSTREAM_REPO }}"
           
-          if [ "${{ github.event.repository.fork }}" = "true" ]; then
-            echo "✅ 这是一个Fork仓库"
-            echo "父仓库: ${{ github.event.repository.parent.full_name }}"
-            echo "父仓库URL: ${{ github.event.repository.parent.html_url }}"
+          # 测试上游仓库是否可以访问
+          if git ls-remote "https://github.com/${{ env.UPSTREAM_REPO }}.git" HEAD &>/dev/null; then
+            echo "✅ 上游仓库可访问: https://github.com/${{ env.UPSTREAM_REPO }}"
+            echo "accessible=true" >> $GITHUB_OUTPUT
           else
-            echo "❌ 这不是Fork仓库，无需上游同步"
+            echo "❌ 无法访问上游仓库"
+            echo "accessible=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: 📡 Setup Upstream Remote
+        if: steps.verify.outputs.accessible == 'true'
+        run: |
+          # 移除可能存在的旧上游配置
+          git remote remove upstream 2>/dev/null || true
+          
+          # 添加上游仓库
+          git remote add upstream "https://github.com/${{ env.UPSTREAM_REPO }}.git"
+          echo "✅ 已添加上游远程: upstream -> https://github.com/${{ env.UPSTREAM_REPO }}.git"
+
+      - name: 🔄 Fetch Upstream Changes
+        if: steps.verify.outputs.accessible == 'true'
+        run: |
+          echo "获取上游仓库的更新..."
+          git fetch upstream ${{ env.UPSTREAM_BRANCH }}
+          
+          echo "=== 上游仓库最新提交 ==="
+          git log -1 --oneline upstream/${{ env.UPSTREAM_BRANCH }}
+          
+          echo "=== 当前仓库最新提交 ==="
+          git log -1 --oneline HEAD
+
+      - name: 📊 Compare Changes
+        if: steps.verify.outputs.accessible == 'true'
+        id: compare
+        run: |
+          # 检查是否有新的提交需要同步
+          if git merge-base --is-ancestor HEAD upstream/${{ env.UPSTREAM_BRANCH }}; then
+            echo "✅ 当前分支已经包含所有上游更改"
+            echo "has_new_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "🔄 检测到上游有新提交需要同步"
+            echo "has_new_changes=true" >> $GITHUB_OUTPUT
+            
+            # 显示将要同步的提交
+            echo "=== 将要同步的提交 ==="
+            git log --oneline HEAD..upstream/${{ env.UPSTREAM_BRANCH }}
+          fi
+
+      - name: 🔀 Merge Upstream Changes
+        if: steps.verify.outputs.accessible == 'true' && steps.compare.outputs.has_new_changes == 'true'
+        id: merge
+        run: |
+          echo "开始合并上游更改..."
+          
+          # 尝试自动合并
+          if git merge --no-commit --no-ff upstream/${{ env.UPSTREAM_BRANCH }}; then
+            echo "✅ 自动合并成功"
+            echo "merge_status=success" >> $GITHUB_OUTPUT
+          else
+            # 检查是否有冲突
+            if git diff --check; then
+              echo "⚠️ 检测到合并冲突"
+              echo "merge_status=conflict" >> $GITHUB_OUTPUT
+            else
+              echo "❌ 合并过程中出现错误"
+              echo "merge_status=error" >> $GITHUB_OUTPUT
+            fi
+            git merge --abort
+          fi
+
+      - name: ✅ Push Successful Merge
+        if: steps.merge.outputs.merge_status == 'success'
+        run: |
+          git commit -m "🔀 chore: auto-sync with upstream [${{ env.UPSTREAM_REPO }}@${{ env.UPSTREAM_BRANCH }}]"
+          git push origin ${{ env.TARGET_BRANCH }}
+          echo "✅ 同步完成！更改已推送到仓库"
+
+      - name: ⚠️ Handle Merge Conflicts
+        if: steps.merge.outputs.merge_status == 'conflict'
+        run: |
+          echo "❌ 合并冲突检测！"
+          echo "================================"
+          echo "无法自动同步，存在合并冲突"
+          echo "请手动执行以下操作："
+          echo "1. 在本地执行: git pull upstream main"
+          echo "2. 解决所有冲突"
+          echo "3. 提交并推送到你的仓库"
+          echo "================================"
+          
+          # 显示冲突文件（如果有）
+          git status | grep -i "unmerged" || echo "无法获取冲突文件列表"
+
+      - name: 📋 Sync Summary
+        if: always()
+        run: |
+          echo "================================"
+          echo "🔄 同步任务总结"
+          echo "================================"
+          echo "📅 执行时间: $(date)"
+          echo "🏠 当前仓库: ${{ github.repository }}"
+          echo "⬆️ 上游仓库: ${{ env.UPSTREAM_REPO }}"
+          echo "🎯 目标分支: ${{ env.TARGET_BRANCH }}"
+          echo "🔧 上游访问: ${{ steps.verify.outputs.accessible }}"
+          echo "📦 有新更改: ${{ steps.compare.outputs.has_new_changes }}"
+          echo "🔄 合并状态: ${{ steps.merge.outputs.merge_status }}"
+          
+          if [ "${{ steps.verify.outputs.accessible }}" = "true" ]; then
+            if [ "${{ steps.compare.outputs.has_new_changes }}" = "true" ]; then
+              if [ "${{ steps.merge.outputs.merge_status }}" = "success" ]; then
+                echo "✅ 同步成功！"
+              elif [ "${{ steps.merge.outputs.merge_status }}" = "conflict" ]; then
+                echo "⚠️ 同步失败：存在合并冲突"
+              else
+                echo "❌ 同步过程中出现错误"
+              fi
+            else
+              echo "ℹ️ 无需同步：已经是最新版本"
+            fi
+          else
+            echo "❌ 同步失败：无法访问上游仓库"
           fi
