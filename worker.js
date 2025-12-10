@@ -1,13 +1,13 @@
 // =================================================================================
 //  項目: multi-provider-image-generator
-//  版本: 8.7.2 (添加生成圖片實時計時功能)
+//  版本: 8.7.3 (添加自動中譯英功能)
 //  作者: Enhanced by AI Assistant
 //  日期: 2025-12-11
 // =================================================================================
 
 const CONFIG = {
   PROJECT_NAME: "multi-provider-image-generator",
-  PROJECT_VERSION: "8.7.2",
+  PROJECT_VERSION: "8.7.3",
   API_MASTER_KEY: "1",
   
   PROVIDERS: {
@@ -29,7 +29,8 @@ const CONFIG = {
         nologo: true,
         style_presets: true,
         auto_hd: true,
-        quality_modes: true
+        quality_modes: true,
+        auto_translate: true
       },
       models: [
         { id: "flux", name: "Flux", confirmed: true, category: "flux", description: "均衡速度與質量" },
@@ -196,6 +197,37 @@ class Logger {
     get() { return this.logs; }
 }
 
+// 自動翻譯函數（使用 Cloudflare Workers AI）
+async function translateToEnglish(text, env) {
+    try {
+        // 檢測是否包含中文
+        const hasChinese = /[\u4e00-\u9fa5]/.test(text);
+        if (!hasChinese) {
+            return { text: text, translated: false };
+        }
+
+        // 使用 Cloudflare Workers AI 翻譯
+        if (env?.AI) {
+            const response = await env.AI.run("@cf/meta/m2m100-1.2b", {
+                text: text,
+                source_lang: "chinese",
+                target_lang: "english"
+            });
+            return { 
+                text: response.translated_text || text, 
+                translated: true,
+                original: text
+            };
+        }
+        
+        // AI 不可用時返回原文
+        return { text: text, translated: false };
+    } catch (e) {
+        console.error("Translation error:", e);
+        return { text: text, translated: false, error: e.message };
+    }
+}
+
 class PromptAnalyzer {
     static analyzeComplexity(prompt) {
         const complexKeywords = ['detailed', 'intricate', 'complex', 'elaborate', 'realistic', 'photorealistic', 'hyperrealistic', 'architecture', 'cityscape', 'landscape', 'portrait', 'face', 'eyes', 'hair', 'texture', 'material', 'fabric', 'skin', 'lighting', 'shadows', 'reflections', 'fine details', 'high detail', 'ultra detailed'];
@@ -352,9 +384,10 @@ async function fetchWithTimeout(url, options = {}, timeout = CONFIG.FETCH_TIMEOU
 }
 
 class PollinationsProvider {
-    constructor(config) {
+    constructor(config, env) {
         this.config = config;
         this.name = config.name;
+        this.env = env;
     }
     async generate(prompt, options, logger) {
         const { model = "flux", width = 1024, height = 1024, seed = -1, negativePrompt = "", guidance = null, steps = null, enhance = false, nologo = true, privateMode = true, style = "none", autoOptimize = true, autoHD = true, qualityMode = 'standard' } = options;
@@ -392,16 +425,29 @@ class PollinationsProvider {
             finalGuidance = guidance || 7.5;
         }
         const { enhancedPrompt, enhancedNegative } = StyleProcessor.applyStyle(finalPrompt, style, finalNegativePrompt);
+        
+        // 自動翻譯中文提示詞
+        const translation = await translateToEnglish(enhancedPrompt, this.env);
+        const finalPromptForAPI = translation.text;
+        
+        if (translation.translated) {
+            logger.add("🌐 Auto Translation", { 
+                original_zh: translation.original,
+                translated_en: finalPromptForAPI,
+                success: true
+            });
+        }
+        
         const modelConfig = this.config.models.find(m => m.id === model);
         const modelsToTry = [model];
         if (modelConfig?.experimental && modelConfig?.fallback) {
             modelsToTry.push(...modelConfig.fallback);
         }
-        logger.add("🎨 Generation Config", { provider: this.name, model: model, dimensions: `${finalWidth}x${finalHeight}`, quality_mode: qualityMode, hd_optimized: autoHD && hdOptimization?.optimized, steps: finalSteps, guidance: finalGuidance });
+        logger.add("🎨 Generation Config", { provider: this.name, model: model, dimensions: `${finalWidth}x${finalHeight}`, quality_mode: qualityMode, hd_optimized: autoHD && hdOptimization?.optimized, auto_translated: translation.translated, steps: finalSteps, guidance: finalGuidance });
         const currentSeed = seed === -1 ? Math.floor(Math.random() * 1000000) : seed;
-        let fullPrompt = enhancedPrompt;
+        let fullPrompt = finalPromptForAPI;
         if (enhancedNegative && enhancedNegative.trim()) {
-            fullPrompt = `${enhancedPrompt} [negative: ${enhancedNegative}]`;
+            fullPrompt = `${finalPromptForAPI} [negative: ${enhancedNegative}]`;
         }
         const encodedPrompt = encodeURIComponent(fullPrompt);
         for (const tryModel of modelsToTry) {
@@ -423,8 +469,8 @@ class PollinationsProvider {
                     if (response.ok) {
                         const contentType = response.headers.get('content-type');
                         if (contentType && contentType.startsWith('image/')) {
-                            logger.add(`✅ Success`, { url: response.url, used_model: tryModel, final_size: `${finalWidth}x${finalHeight}`, quality_mode: qualityMode, hd_optimized: autoHD && hdOptimization?.optimized, seed: currentSeed });
-                            return { url: response.url, provider: this.name, model: tryModel, requested_model: model, seed: currentSeed, style: style, steps: finalSteps, guidance: finalGuidance, width: finalWidth, height: finalHeight, quality_mode: qualityMode, prompt_complexity: promptComplexity, hd_optimized: autoHD && hdOptimization?.optimized, hd_details: hdOptimization, cost: "FREE", fallback_used: tryModel !== model, auto_optimized: autoOptimize };
+                            logger.add(`✅ Success`, { url: response.url, used_model: tryModel, final_size: `${finalWidth}x${finalHeight}`, quality_mode: qualityMode, hd_optimized: autoHD && hdOptimization?.optimized, auto_translated: translation.translated, seed: currentSeed });
+                            return { url: response.url, provider: this.name, model: tryModel, requested_model: model, seed: currentSeed, style: style, steps: finalSteps, guidance: finalGuidance, width: finalWidth, height: finalHeight, quality_mode: qualityMode, prompt_complexity: promptComplexity, hd_optimized: autoHD && hdOptimization?.optimized, hd_details: hdOptimization, auto_translated: translation.translated, cost: "FREE", fallback_used: tryModel !== model, auto_optimized: autoOptimize };
                         } else {
                             throw new Error(`Invalid content type: ${contentType}`);
                         }
@@ -443,13 +489,14 @@ class PollinationsProvider {
 }
 
 class MultiProviderRouter {
-    constructor(apiKeys = {}) {
+    constructor(apiKeys = {}, env = null) {
         this.providers = {};
         this.apiKeys = apiKeys;
+        this.env = env;
         for (const [key, config] of Object.entries(CONFIG.PROVIDERS)) {
             if (config.enabled) {
                 if (key === 'pollinations') {
-                    this.providers[key] = new PollinationsProvider(config);
+                    this.providers[key] = new PollinationsProvider(config, env);
                 }
             }
         }
@@ -495,9 +542,9 @@ export default {
       if (url.pathname === '/') {
         return handleUI(request);
       } else if (url.pathname === '/v1/chat/completions') {
-        return handleChatCompletions(request);
+        return handleChatCompletions(request, env);
       } else if (url.pathname === '/v1/images/generations') {
-        return handleImageGenerations(request);
+        return handleImageGenerations(request, env);
       } else if (url.pathname === '/v1/models') {
         return handleModelsRequest();
       } else if (url.pathname === '/v1/providers') {
@@ -507,7 +554,7 @@ export default {
       } else if (url.pathname === '/health') {
         return new Response(JSON.stringify({ status: 'ok', version: CONFIG.PROJECT_VERSION, timestamp: new Date().toISOString() }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
       } else {
-        return new Response(JSON.stringify({ project: CONFIG.PROJECT_NAME, version: CONFIG.PROJECT_VERSION, features: ['17 Models', '12 Styles', '3 Quality Modes', 'Smart Analysis', 'Auto HD', 'History', 'Chinese Support', 'Real-time Timer'], endpoints: ['/v1/images/generations', '/v1/chat/completions', '/v1/models', '/v1/providers', '/v1/styles', '/health'] }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+        return new Response(JSON.stringify({ project: CONFIG.PROJECT_NAME, version: CONFIG.PROJECT_VERSION, features: ['17 Models', '12 Styles', '3 Quality Modes', 'Smart Analysis', 'Auto HD', 'History', 'Auto Chinese Translation', 'Real-time Timer'], endpoints: ['/v1/images/generations', '/v1/chat/completions', '/v1/models', '/v1/providers', '/v1/styles', '/health'] }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
       }
     } catch (error) {
       console.error('Worker error:', error);
@@ -516,7 +563,7 @@ export default {
   }
 };
 
-async function handleChatCompletions(request) {
+async function handleChatCompletions(request, env) {
     const logger = new Logger();
     try {
         const body = await request.json();
@@ -535,7 +582,7 @@ async function handleChatCompletions(request) {
         prompt = prompt.trim();
         if (!prompt) throw new Error("Empty prompt");
         const options = { provider: body.provider || null, model: body.model || "flux", width: body.width || 1024, height: body.height || 1024, numOutputs: Math.min(Math.max(body.n || 1, 1), 4), seed: body.seed !== undefined ? body.seed : -1, negativePrompt: body.negative_prompt || "", guidance: body.guidance_scale || null, steps: body.steps || null, enhance: body.enhance === true, nologo: body.nologo !== false, privateMode: body.private !== false, style: body.style || "none", autoOptimize: body.auto_optimize !== false, autoHD: body.auto_hd !== false, qualityMode: body.quality_mode || 'standard' };
-        const router = new MultiProviderRouter();
+        const router = new MultiProviderRouter({}, env);
         const results = await router.generate(prompt, options, logger);
         let respContent = "";
         results.forEach((result, index) => { respContent += `![Generated Image ${index + 1}](${result.url})\n`; });
@@ -566,7 +613,7 @@ async function handleChatCompletions(request) {
     }
 }
 
-async function handleImageGenerations(request) {
+async function handleImageGenerations(request, env) {
     const logger = new Logger();
     try {
         const body = await request.json();
@@ -580,9 +627,9 @@ async function handleImageGenerations(request) {
         if (body.width) width = body.width;
         if (body.height) height = body.height;
         const options = { provider: body.provider || null, model: body.model || "flux", width: Math.min(Math.max(width, 256), 2048), height: Math.min(Math.max(height, 256), 2048), numOutputs: Math.min(Math.max(body.n || 1, 1), 4), seed: body.seed !== undefined ? body.seed : -1, negativePrompt: body.negative_prompt || "", guidance: body.guidance_scale || null, steps: body.steps || null, enhance: body.enhance === true, nologo: body.nologo !== false, privateMode: body.private !== false, style: body.style || "none", autoOptimize: body.auto_optimize !== false, autoHD: body.auto_hd !== false, qualityMode: body.quality_mode || 'standard' };
-        const router = new MultiProviderRouter();
+        const router = new MultiProviderRouter({}, env);
         const results = await router.generate(prompt, options, logger);
-        return new Response(JSON.stringify({ created: Math.floor(Date.now() / 1000), data: results.map(r => ({ url: r.url, provider: r.provider, model: r.model, seed: r.seed, width: r.width, height: r.height, style: r.style, quality_mode: r.quality_mode, prompt_complexity: r.prompt_complexity, steps: r.steps, guidance: r.guidance, auto_optimized: r.auto_optimized, hd_optimized: r.hd_optimized, cost: r.cost })) }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
+        return new Response(JSON.stringify({ created: Math.floor(Date.now() / 1000), data: results.map(r => ({ url: r.url, provider: r.provider, model: r.model, seed: r.seed, width: r.width, height: r.height, style: r.style, quality_mode: r.quality_mode, prompt_complexity: r.prompt_complexity, steps: r.steps, guidance: r.guidance, auto_optimized: r.auto_optimized, hd_optimized: r.hd_optimized, auto_translated: r.auto_translated, cost: r.cost })) }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
     } catch (e) {
         logger.add("❌ Error", e.message);
         return new Response(JSON.stringify({ error: { message: e.message, debug_logs: logger.get() } }), { status: 500, headers: corsHeaders({ 'Content-Type': 'application/json' }) });
@@ -676,8 +723,8 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 <div class="header">
 <div class="header-left">
 <h1>🎨 Flux AI Pro<span class="badge">v${CONFIG.PROJECT_VERSION}</span></h1>
-<p class="subtitle">17個模型 · 12種風格 · 3檔質量 · 智能HD優化 · 完全免費</p>
-<span class="chinese-support">✨ 支持中英文混合提示詞</span>
+<p class="subtitle">17個模型 · 12種風格 · 3檔質量 · 智能HD優化 · 自動中譯英</p>
+<span class="chinese-support">✨ 完美支持中文提示詞（自動翻譯）</span>
 </div>
 <button onclick="toggleHistory()" class="history-btn">
 📜 歷史紀錄
@@ -699,13 +746,13 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 <div class="grid">
 <div class="box">
 <h3>📝 生成設置</h3>
-<label>提示詞 * (支持中英文)</label>
+<label>提示詞 * (完美支持中文)</label>
 <div class="prompt-actions">
 <button type="button" onclick="fillExample('zh')" class="btn-example">中文示例</button>
 <button type="button" onclick="fillExample('en')" class="btn-example">英文示例</button>
 <button type="button" onclick="fillExample('mix')" class="btn-example">混合示例</button>
 </div>
-<textarea id="prompt" placeholder="中文：一個穿著漢服的女孩在櫻花樹下&#10;English: A girl in traditional Chinese dress under cherry blossoms&#10;混合: 賽博朋克風格的龍 cyberpunk style dragon"></textarea>
+<textarea id="prompt" placeholder="中文：一個穿著漢服的女孩在櫻花樹下&#10;English: A girl in traditional Chinese dress under cherry blossoms&#10;混合: 賽博朋克風格的龍 cyberpunk style dragon&#10;&#10;💡 系統會自動將中文翻譯成英文以提高生成質量"></textarea>
 <label>負面提示詞</label>
 <textarea id="negativePrompt" placeholder="低質量、模糊、變形 low quality, blurry, distorted"></textarea>
 <label>AI 模型</label>
@@ -971,7 +1018,7 @@ button.disabled=true;
 button.textContent='生成中...';
 
 startTime=Date.now();
-resultDiv.innerHTML='<div class="success"><strong>⏳ 正在生成圖像，請稍候...</strong><div class="timer">⏱️ 已耗時: 0.0 秒</div></div>';
+resultDiv.innerHTML='<div class="success"><strong>⏳ 正在生成圖像，請稍候...</strong><div class="timer">⏱️ 已耗時: 0.0 秒</div><div style="margin-top:8px;font-size:12px;opacity:0.8">💡 系統正在自動翻譯中文提示詞...</div></div>';
 
 generationTimer=setInterval(updateTimer,100);
 
@@ -1016,7 +1063,7 @@ height:item.height,
 qualityMode:item.quality_mode,
 seed:item.seed
 });
-resultDiv.innerHTML+=\`<div class="result"><img src="\${item.url}" alt="Generated \${index+1}" onclick="window.open('\${item.url}')"><p style="margin-top:12px;font-size:13px;color:#9ca3af">\${item.model} | \${item.width}x\${item.height} | \${item.quality_mode}</p></div>\`;
+resultDiv.innerHTML+=\`<div class="result"><img src="\${item.url}" alt="Generated \${index+1}" onclick="window.open('\${item.url}')"><p style="margin-top:12px;font-size:13px;color:#9ca3af">\${item.model} | \${item.width}x\${item.height} | \${item.quality_mode}\${item.auto_translated?' | 🌐 已翻譯':''}</p></div>\`;
 });
 resultDiv.innerHTML+='</div>';
 }catch(error){
