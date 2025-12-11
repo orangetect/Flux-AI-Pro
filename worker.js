@@ -1,13 +1,13 @@
 // =================================================================================
 //  項目: multi-provider-image-generator
-//  版本: 8.8.1 (移除主界面中文提示相关文字)
+//  版本: 8.9.0 (添加 Nano Banana 专属模式切换)
 //  作者: Enhanced by AI Assistant
 //  日期: 2025-12-11
 // =================================================================================
 
 const CONFIG = {
   PROJECT_NAME: "multi-provider-image-generator",
-  PROJECT_VERSION: "8.8.1",
+  PROJECT_VERSION: "8.9.0",
   API_MASTER_KEY: "1",
   
   PROVIDERS: {
@@ -206,13 +206,10 @@ class Logger {
 // 自動翻譯函數（使用 Cloudflare Workers AI）
 async function translateToEnglish(text, env) {
     try {
-        // 檢測是否包含中文
         const hasChinese = /[\u4e00-\u9fa5]/.test(text);
         if (!hasChinese) {
             return { text: text, translated: false };
         }
-
-        // 使用 Cloudflare Workers AI 翻譯
         if (env?.AI) {
             const response = await env.AI.run("@cf/meta/m2m100-1.2b", {
                 text: text,
@@ -225,8 +222,6 @@ async function translateToEnglish(text, env) {
                 original: text
             };
         }
-        
-        // AI 不可用時返回原文
         return { text: text, translated: false };
     } catch (e) {
         console.error("Translation error:", e);
@@ -431,11 +426,8 @@ class PollinationsProvider {
             finalGuidance = guidance || 7.5;
         }
         const { enhancedPrompt, enhancedNegative } = StyleProcessor.applyStyle(finalPrompt, style, finalNegativePrompt);
-        
-        // 自動翻譯中文提示詞
         const translation = await translateToEnglish(enhancedPrompt, this.env);
         const finalPromptForAPI = translation.text;
-        
         if (translation.translated) {
             logger.add("🌐 Auto Translation", { 
                 original_zh: translation.original,
@@ -443,7 +435,6 @@ class PollinationsProvider {
                 success: true
             });
         }
-        
         const modelConfig = this.config.models.find(m => m.id === model);
         const modelsToTry = [model];
         if (modelConfig?.experimental && modelConfig?.fallback) {
@@ -681,6 +672,11 @@ function handleUI() {
 h1{color:#f59e0b;margin:0;font-size:36px;font-weight:800;text-shadow:0 0 30px rgba(245,158,11,0.6)}
 .badge{background:linear-gradient(135deg,#10b981 0%,#059669 100%);padding:6px 14px;border-radius:20px;font-size:14px;margin-left:10px}
 .subtitle{color:#9ca3af;margin-top:8px;font-size:15px}
+.mode-toggle{display:flex;gap:10px;margin-bottom:20px}
+.mode-btn{padding:10px 20px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.1);color:#9ca3af;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.3s}
+.mode-btn:hover{background:rgba(255,255,255,0.08);border-color:rgba(245,158,11,0.5)}
+.mode-btn.active{background:linear-gradient(135deg,#fbbf24 0%,#f59e0b 100%);border-color:#f59e0b;color:#000}
+.banana-mode .mode-btn.banana{background:linear-gradient(135deg,#fbbf24 0%,#f59e0b 100%);border-color:#f59e0b;color:#000}
 .history-btn{background:linear-gradient(135deg,#8b5cf6 0%,#7c3aed 100%);color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all 0.3s;position:relative}
 .history-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(139,92,246,0.4)}
 .history-badge{position:absolute;top:-8px;right:-8px;background:#ef4444;color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
@@ -711,8 +707,8 @@ h1{color:#f59e0b;margin:0;font-size:36px;font-weight:800;text-shadow:0 0 30px rg
 .btn-delete:hover{background:rgba(239,68,68,0.3)}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0}@media (max-width:768px){.grid{grid-template-columns:1fr}.history-panel{width:100vw}}
 .box{background:rgba(26,26,26,0.95);padding:24px;border-radius:16px;border:1px solid rgba(255,255,255,0.1)}h3{color:#f59e0b;margin-bottom:18px;font-size:18px;font-weight:700}label{display:block;margin:16px 0 8px 0;color:#e5e7eb;font-weight:600;font-size:13px}
-.prompt-actions{display:flex;gap:8px;margin-bottom:12px}
-.btn-example{flex:1;padding:8px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);color:#a78bfa;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.3s}
+.prompt-actions{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.btn-example{flex:1;min-width:80px;padding:8px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);color:#a78bfa;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.3s}
 .btn-example:hover{background:rgba(139,92,246,0.2);border-color:#8b5cf6}
 select,textarea,input{width:100%;padding:12px;margin:0;background:#2a2a2a;border:1px solid #444;color:#fff;border-radius:10px;font-size:14px;font-family:inherit;transition:all 0.3s}select:focus,textarea:focus,input:focus{outline:none;border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,0.15)}textarea{resize:vertical;min-height:90px}
 .quality-mode-selector{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0}.quality-option input[type="radio"]{position:absolute;opacity:0}.quality-label{display:block;padding:16px 12px;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.1);border-radius:12px;text-align:center;cursor:pointer;transition:all 0.3s}.quality-label:hover{background:rgba(255,255,255,0.08);border-color:rgba(245,158,11,0.5)}.quality-option input[type="radio"]:checked + .quality-label{background:rgba(245,158,11,0.2);border-color:#f59e0b}.quality-name{font-size:14px;font-weight:600;color:#e5e7eb;margin-bottom:4px}.quality-desc{font-size:11px;color:#9ca3af}
@@ -736,6 +732,11 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 </button>
 </div>
 
+<div class="mode-toggle">
+<button class="mode-btn all active" onclick="switchMode('all')">🎨 全部模型</button>
+<button class="mode-btn banana" onclick="switchMode('banana')">🍌 Nano Banana 專屬</button>
+</div>
+
 <div id="historyPanel" class="history-panel">
 <div class="history-header">
 <h2>📸 圖片歷史</h2>
@@ -751,17 +752,15 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 <div class="box">
 <h3>📝 生成設置</h3>
 <label>提示詞 *</label>
-<div class="prompt-actions">
-<button type="button" onclick="fillExample('zh')" class="btn-example">中文示例</button>
-<button type="button" onclick="fillExample('en')" class="btn-example">英文示例</button>
-<button type="button" onclick="fillExample('mix')" class="btn-example">混合示例</button>
+<div class="prompt-actions" id="promptActions">
+<!-- 动态切换示例按钮 -->
 </div>
 <textarea id="prompt" placeholder="Describe your image...&#10;A beautiful sunset over mountains with vibrant colors"></textarea>
 <label>負面提示詞</label>
 <textarea id="negativePrompt" placeholder="low quality, blurry, distorted"></textarea>
 <label>AI 模型</label>
 <select id="model">
-<optgroup label="⚡ Flux 系列">
+<optgroup label="⚡ Flux 系列" class="flux-group">
 <option value="flux">Flux (均衡)</option>
 <option value="flux-realism">Flux Realism (超寫實)</option>
 <option value="flux-anime">Flux Anime (動漫)</option>
@@ -770,16 +769,16 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 <option value="any-dark">Any Dark (暗黑)</option>
 <option value="turbo">Turbo (極速)</option>
 </optgroup>
-<optgroup label="🔥 Flux 高級版">
+<optgroup label="🔥 Flux 高級版" class="flux-group">
 <option value="flux-1.1-pro">Flux 1.1 Pro 🔥</option>
 <option value="flux-kontext">Flux Kontext 🎨</option>
 <option value="flux-kontext-pro">Flux Kontext Pro 💎</option>
 </optgroup>
-<optgroup label="🍌 Google Gemini (Nano Banana)">
+<optgroup label="🍌 Google Gemini (Nano Banana)" class="banana-group">
 <option value="nanobanana">Nano Banana 🍌 (快速版)</option>
 <option value="nanobanana-pro">Nano Banana Pro 🍌💎 (4K+繁中文字)</option>
 </optgroup>
-<optgroup label="🌟 Stable Diffusion">
+<optgroup label="🌟 Stable Diffusion" class="sd-group">
 <option value="sd3">SD 3 ⚡</option>
 <option value="sd3.5-large">SD 3.5 Large 🔥</option>
 <option value="sd3.5-turbo">SD 3.5 Turbo ⚡</option>
@@ -842,6 +841,7 @@ ${Object.entries(CONFIG.PRESET_SIZES).map(([k,v])=>`<option value="${k}" ${k==='
 <script>
 const STORAGE_KEY='flux_ai_history';
 const MAX_HISTORY=100;
+let currentMode='all';
 
 let generationTimer=null;
 let startTime=0;
@@ -856,13 +856,69 @@ timerElement.textContent=\`⏱️ 已耗時: \${elapsed} 秒\`;
 }
 
 const EXAMPLES={
-zh:'一個穿著中國傳統漢服的少女，站在盛開的櫻花樹下，溫柔的微笑，細膩的畫面，柔和的光線',
-en:'A beautiful girl in traditional Chinese hanfu dress, standing under blooming cherry blossom trees, gentle smile, delicate artwork, soft lighting',
-mix:'賽博朋克風格的中國龍 cyberpunk style, neon lights, futuristic Chinese dragon, detailed scales, glowing eyes'
+all:[
+{label:'汉服',text:'一個穿著中國傳統漢服的少女，站在盛開的櫻花樹下，溫柔的微笑，細膩的畫面，柔和的光線'},
+{label:'赛博朋克',text:'賽博朋克風格的中國龍 cyberpunk style, neon lights, futuristic Chinese dragon, detailed scales, glowing eyes'},
+{label:'油画',text:'古典油畫風格的威尼斯運河，細膩的筆觸，豐富的色彩，藝術感強'},
+{label:'动漫',text:'anime style girl with cat ears, vibrant colors, cute expression, detailed anime art'}
+],
+banana:[
+{label:'漢服少女',text:'一位身穿精美漢服的古典美女，站在江南園林中，背景是飄落的桃花，柔和的光線，極致細節，8K畫質'},
+{label:'中文書法',text:'毛筆書法「天道酬勤」四個繁體大字，墨香四溢，宣紙質感，金色背景，專業攝影，4K超高清'},
+{label:'故宮建築',text:'紫禁城太和殿在日出時分，雲霧繚繞，金色陽光灑滿紅牆黃瓦，超廣角鏡頭，4K超高清'},
+{label:'水墨山水',text:'中國傳統水墨山水畫，高山流水，雲霧繚繞，意境深遠，細膩的筆觸，4K超高清'}
+]
 };
 
-function fillExample(type){
-document.getElementById('prompt').value=EXAMPLES[type];
+function updateExamples(){
+const container=document.getElementById('promptActions');
+const examples=EXAMPLES[currentMode];
+container.innerHTML=examples.map(ex=>
+\`<button type="button" onclick="fillExample('\${ex.label}')" class="btn-example">\${ex.label}</button>\`
+).join('');
+}
+
+function fillExample(label){
+const examples=EXAMPLES[currentMode];
+const example=examples.find(ex=>ex.label===label);
+if(example){
+document.getElementById('prompt').value=example.text;
+}
+}
+
+function switchMode(mode){
+currentMode=mode;
+const modelSelect=document.getElementById('model');
+const allBtn=document.querySelector('.mode-btn.all');
+const bananaBtn=document.querySelector('.mode-btn.banana');
+const fluxGroups=document.querySelectorAll('.flux-group, .sd-group');
+const bananaGroup=document.querySelector('.banana-group');
+
+if(mode==='banana'){
+fluxGroups.forEach(group=>group.style.display='none');
+bananaGroup.style.display='block';
+modelSelect.value='nanobanana-pro';
+allBtn.classList.remove('active');
+bananaBtn.classList.add('active');
+
+const widthSlider=document.getElementById('width');
+const heightSlider=document.getElementById('height');
+const widthValue=document.getElementById('widthValue');
+const heightValue=document.getElementById('heightValue');
+widthSlider.value=1536;
+heightSlider.value=1536;
+widthValue.textContent='1536';
+heightValue.textContent='1536';
+
+document.getElementById('q-ultra').checked=true;
+}else{
+fluxGroups.forEach(group=>group.style.display='block');
+bananaGroup.style.display='block';
+allBtn.classList.add('active');
+bananaBtn.classList.remove('active');
+}
+
+updateExamples();
 }
 
 class HistoryManager{
@@ -1085,6 +1141,7 @@ button.textContent='🚀 開始生成';
 
 document.addEventListener('DOMContentLoaded',()=>{
 HistoryManager.updateBadge();
+switchMode('all');
 });
 </script>
 </body>
