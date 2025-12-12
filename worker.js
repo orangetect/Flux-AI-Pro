@@ -4,11 +4,12 @@
 //  作者: Enhanced by AI Assistant  
 //  日期: 2025-12-12
 //  功能: 本地上傳 | 圖生圖 | 多圖融合 | 中文支持 | 4K | 計時器 | 歷史
+//  修復: 翻譯功能 + 升級 m2m100 模型
 // =================================================================================
 
 const CONFIG = {
   PROJECT_NAME: "Flux-AI-Pro",
-  PROJECT_VERSION: "9.2.0",
+  PROJECT_VERSION: "9.2.0-fixed",
   API_MASTER_KEY: "1",
   
   PROVIDERS: {
@@ -62,12 +63,6 @@ const CONFIG = {
   },
   
   DEFAULT_PROVIDER: "pollinations",
-  
-  FLUX_OFFICIAL_PARAMS: {
-    schnell: { guidance_scale: 0.0, num_inference_steps: 4, max_sequence_length: 256, description: "FLUX.1 [schnell] 官方參數" },
-    dev: { guidance_scale: 3.5, num_inference_steps: 50, max_sequence_length: 512, description: "FLUX.1 [dev] 官方參數" },
-    pro: { guidance_scale: 7.0, num_inference_steps: 28, max_sequence_length: 512, description: "FLUX.1 [pro] 官方參數" }
-  },
   
   STYLE_PRESETS: {
     none: { name: "無 (使用原始提示詞)", prompt: "", negative: "" },
@@ -180,25 +175,69 @@ class Logger {
     get() { return this.logs; }
 }
 
+// 🔧 修復版翻譯函數 - 升級到 m2m100
 async function translateToEnglish(text, env) {
     try {
         const hasChinese = /[\u4e00-\u9fa5]/.test(text);
-        if (!hasChinese) return { text: text, translated: false };
-        if (env?.AI) {
-            const response = await env.AI.run("@cf/meta/m2m100-1.2b", {
+        if (!hasChinese) {
+            return { text: text, translated: false, reason: "No Chinese detected" };
+        }
+        
+        if (!env || !env.AI) {
+            console.warn("⚠️ Workers AI not configured, skipping translation");
+            return { text: text, translated: false, reason: "AI not configured" };
+        }
+        
+        try {
+            // 使用 m2m100 完整版模型
+            const response = await env.AI.run("@cf/meta/m2m100", {
                 text: text,
                 source_lang: "chinese",
                 target_lang: "english"
             });
-            return { text: response.translated_text || text, translated: true, original: text };
+            
+            if (response && response.translated_text) {
+                console.log("✅ Translation success:", text, "→", response.translated_text);
+                return { 
+                    text: response.translated_text, 
+                    translated: true, 
+                    original: text,
+                    model: "m2m100"
+                };
+            }
+        } catch (primaryError) {
+            console.warn("⚠️ m2m100 failed, trying fallback:", primaryError.message);
+            
+            // 備用: m2m100-1.2b
+            try {
+                const response = await env.AI.run("@cf/meta/m2m100-1.2b", {
+                    text: text,
+                    source_lang: "chinese",
+                    target_lang: "english"
+                });
+                
+                if (response && response.translated_text) {
+                    console.log("✅ Translation success (fallback):", response.translated_text);
+                    return { 
+                        text: response.translated_text, 
+                        translated: true, 
+                        original: text,
+                        model: "m2m100-1.2b"
+                    };
+                }
+            } catch (fallbackError) {
+                console.error("❌ All translation models failed");
+            }
         }
-        return { text: text, translated: false };
-    } catch (e) {
-        console.error("Translation error:", e);
-        return { text: text, translated: false, error: e.message };
+        
+        console.warn("⚠️ Translation failed, using original Chinese text");
+        return { text: text, translated: false, reason: "Translation failed" };
+        
+    } catch (error) {
+        console.error("❌ translateToEnglish error:", error);
+        return { text: text, translated: false, error: error.message };
     }
 }
-
 class PromptAnalyzer {
     static analyzeComplexity(prompt) {
         const complexKeywords = ['detailed', 'intricate', 'complex', 'elaborate', 'realistic', 'photorealistic', 'hyperrealistic', 'architecture', 'cityscape', 'landscape', 'portrait', 'face', 'eyes', 'hair', 'texture', 'material', 'fabric', 'skin', 'lighting', 'shadows', 'reflections', 'fine details', 'high detail', 'ultra detailed', '4k', '8k', 'uhd'];
@@ -376,7 +415,7 @@ class PollinationsProvider {
     constructor(config, env) {
         this.config = config;
         this.name = config.name;
-        this.env = env;
+        this.env = env;  // 🔧 確保保存 env
     }
     
     async generate(prompt, options, logger) {
@@ -491,6 +530,7 @@ class PollinationsProvider {
         
         const { enhancedPrompt, enhancedNegative } = StyleProcessor.applyStyle(finalPrompt, style, finalNegativePrompt);
         
+        // 🔧 修復: 確保傳遞 this.env
         const translation = await translateToEnglish(enhancedPrompt, this.env);
         const finalPromptForAPI = translation.text;
         
@@ -498,7 +538,14 @@ class PollinationsProvider {
             logger.add("🌐 Auto Translation", { 
                 original_zh: translation.original,
                 translated_en: finalPromptForAPI,
-                success: true
+                success: true,
+                model: translation.model || "unknown"
+            });
+        } else {
+            logger.add("⚠️ Translation", { 
+                status: "skipped",
+                reason: translation.reason || "Unknown",
+                using_original: true
             });
         }
         
@@ -626,11 +673,12 @@ class MultiProviderRouter {
     constructor(apiKeys = {}, env = null) {
         this.providers = {};
         this.apiKeys = apiKeys;
-        this.env = env;
+        this.env = env;  // 🔧 保存 env
+        
         for (const [key, config] of Object.entries(CONFIG.PROVIDERS)) {
             if (config.enabled) {
                 if (key === 'pollinations') {
-                    this.providers[key] = new PollinationsProvider(config, env);
+                    this.providers[key] = new PollinationsProvider(config, env);  // 🔧 傳遞 env
                 }
             }
         }
@@ -673,10 +721,16 @@ function corsHeaders(additionalHeaders = {}) {
         ...additionalHeaders 
     };
 }
-
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    
+    // 🔧 添加調試日誌
+    console.log("=== Worker Debug ===");
+    console.log("Workers AI available:", !!env.AI);
+    console.log("Path:", url.pathname);
+    console.log("===================");
+    
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: corsHeaders() });
     }
@@ -698,17 +752,17 @@ export default {
           status: 'ok', 
           version: CONFIG.PROJECT_VERSION, 
           timestamp: new Date().toISOString(),
+          workers_ai: !!env.AI,
           features: [
             '本地上傳 (Local Upload)',
             '圖生圖 (Image-to-Image)',
             '多圖融合 (Multi-Image Fusion)',
-            '中文支持 (Chinese Support)',
+            '中文支持 (Chinese Support) - m2m100',
             '4K Ultra HD Support',
             'Generation Timer',
             'Full History',
             '17 Models',
             '8 Styles',
-            'FLUX Official Params',
             'Smart Optimization'
           ]
         }), { headers: corsHeaders({ 'Content-Type': 'application/json' }) });
@@ -729,7 +783,7 @@ export default {
             '4K Support 🍌',
             'Generation Timer ⏱️',
             'Full History 📜',
-            'Auto Translation'
+            'Auto Translation (m2m100)'
           ], 
           endpoints: [
             '/v1/images/generations', 
@@ -808,7 +862,7 @@ async function handleChatCompletions(request, env) {
             referenceImages: referenceImages
         };
         
-        const router = new MultiProviderRouter({}, env);
+        const router = new MultiProviderRouter({}, env);  // 🔧 傳遞 env
         const results = await router.generate(prompt, options, logger);
         
         let respContent = "";
@@ -921,7 +975,7 @@ async function handleImageGenerations(request, env) {
             referenceImages: referenceImages
         };
         
-        const router = new MultiProviderRouter({}, env);
+        const router = new MultiProviderRouter({}, env);  // 🔧 傳遞 env
         const results = await router.generate(prompt, options, logger);
         
         return new Response(JSON.stringify({ 
@@ -1077,7 +1131,7 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 <div class="header">
 <div class="header-left">
 <h1>🎨 Flux AI Pro<span class="badge">v${CONFIG.PROJECT_VERSION}</span><span class="badge-new">本地上傳 📤</span></h1>
-<p class="subtitle">本地上傳 · 圖生圖 · 多圖融合 · 中文支持 · 4K超清</p>
+<p class="subtitle">本地上傳 · 圖生圖 · 多圖融合 · 中文支持 (m2m100) · 4K超清</p>
 </div>
 <button onclick="toggleHistory()" class="history-btn">📜 歷史<span id="historyBadge" class="history-badge" style="display:none">0</span></button>
 </div>
@@ -1085,7 +1139,7 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 <div class="grid">
 <div class="box">
 <h3>📝 生成設置</h3>
-<label>提示詞 * <span style="color:#10b981;font-size:11px;font-weight:400">✓ 支持中文 (自動翻譯)</span></label>
+<label>提示詞 * <span style="color:#10b981;font-size:11px;font-weight:400">✓ 支持中文 (自動翻譯 m2m100)</span></label>
 <textarea id="prompt" placeholder="描述你想要的圖片... (支持中文輸入,將自動翻譯成英文)"></textarea>
 <div class="example-btns">
 <button type="button" onclick="setPrompt('一隻貓在太空中漂浮,極致細節,8k')">🐱 太空貓</button>
