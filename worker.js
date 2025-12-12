@@ -1,6 +1,6 @@
 // =================================================================================
 //  項目: Flux AI Pro
-//  版本: 9.3.1 (修復 localStorage 錯誤)
+//  版本: 9.3.3 (修復藝術風格)
 //  作者: Enhanced by AI Assistant  
 //  日期: 2025-12-12
 //  功能: 本地上傳 | 圖生圖 | 多圖融合 | 多張生成 | 英文提示詞
@@ -8,7 +8,7 @@
 
 const CONFIG = {
   PROJECT_NAME: "Flux-AI-Pro",
-  PROJECT_VERSION: "9.3.1",
+  PROJECT_VERSION: "9.3.3",
   API_MASTER_KEY: "1",
   
   PROVIDERS: {
@@ -991,7 +991,6 @@ function handleUI() {
 .header-left{flex:1}
 h1{color:#f59e0b;margin:0;font-size:36px;font-weight:800;text-shadow:0 0 30px rgba(245,158,11,0.6)}
 .badge{background:linear-gradient(135deg,#10b981 0%,#059669 100%);padding:6px 14px;border-radius:20px;font-size:14px;margin-left:10px}
-.badge-new{background:linear-gradient(135deg,#ec4899 0%,#db2777 100%);padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;margin-left:8px}
 .subtitle{color:#9ca3af;margin-top:8px;font-size:15px}
 .history-btn{background:linear-gradient(135deg,#8b5cf6 0%,#7c3aed 100%);color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all 0.3s;position:relative}
 .history-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(139,92,246,0.4)}
@@ -1028,7 +1027,6 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 .history-info{color:#9ca3af;font-size:12px;margin-top:5px}
 .history-actions{display:flex;gap:10px;margin-top:10px}
 .history-actions button{padding:8px 16px;font-size:12px;margin:0}
-.warning-box{background:rgba(239,68,68,0.1);border:1px solid #ef4444;padding:12px;border-radius:8px;margin-top:10px;font-size:12px;color:#fca5a5}
 </style>
 </head>
 <body>
@@ -1036,7 +1034,7 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 <div class="header">
 <div class="header-left">
 <h1>🎨 Flux AI Pro<span class="badge">v${CONFIG.PROJECT_VERSION}</span></h1>
-<p class="subtitle">本地上傳 · 圖生圖 · 多圖融合 · 多張生成 · 4K · 英文提示詞<span class="badge-new">會話存儲</span></p>
+<p class="subtitle">本地上傳 · 圖生圖 · 多圖融合 · 多張生成 · 4K · 英文提示詞</p>
 </div>
 <button onclick="toggleHistory()" class="history-btn">📜 歷史<span id="historyBadge" class="history-badge" style="display:none">0</span></button>
 </div>
@@ -1089,10 +1087,17 @@ button{width:100%;padding:16px;background:linear-gradient(135deg,#f59e0b 0%,#d97
 <option value="nanobanana-pro">Nano Banana Pro 🍌💎 (4K+4張)</option>
 </optgroup>
 </select>
+
 <label>藝術風格</label>
 <select id="style">
-<option value="none">無</option>
-${Object.entries(CONFIG.STYLE_PRESETS).filter(([k])=>k!=='none').map(([k,v])=>'<option value="' + k + '">' + v.name + '</option>').join('')}
+<option value="none">無 (使用原始提示詞)</option>
+<option value="anime">動漫風格 ✨</option>
+<option value="photorealistic">寫實照片 📷</option>
+<option value="oil-painting">油畫 🎨</option>
+<option value="watercolor">水彩畫 💧</option>
+<option value="sketch">素描 ✏️</option>
+<option value="cyberpunk">賽博朋克 🌃</option>
+<option value="fantasy">奇幻風格 🐉</option>
 </select>
 </div>
 
@@ -1100,7 +1105,16 @@ ${Object.entries(CONFIG.STYLE_PRESETS).filter(([k])=>k!=='none').map(([k,v])=>'<
 <h3>🎨 圖像參數</h3>
 <label>尺寸預設</label>
 <select id="sizePreset" onchange="applySizePreset()">
-${Object.entries(CONFIG.PRESET_SIZES).map(([k,v])=>'<option value="' + k + '">' + v.name + (v.exclusive?' 🍌':'') + '</option>').join('')}
+<option value="square-1k">方形 1K</option>
+<option value="square-2k">方形 2K</option>
+<option value="square-4k">方形 4K 🍌</option>
+<option value="portrait">豎屏 9:16</option>
+<option value="portrait-2k">豎屏 2K</option>
+<option value="landscape">橫屏 16:9</option>
+<option value="landscape-2k">橫屏 2K</option>
+<option value="standard-portrait">標準豎屏 3:4</option>
+<option value="standard-landscape">標準橫屏 4:3</option>
+<option value="custom">自定義</option>
 </select>
 <label>寬度: <span id="widthValue">1024</span>px</label>
 <input type="range" id="width" min="256" max="4096" step="64" value="1024">
@@ -1122,10 +1136,6 @@ ${Object.entries(CONFIG.PRESET_SIZES).map(([k,v])=>'<option value="' + k + '">' 
 </select>
 <small style="color:#9ca3af;font-size:11px;margin-top:5px;display:block">多張生成時會自動使用不同的隨機種子</small>
 <button onclick="generate()">🚀 開始生成</button>
-<div class="warning-box">
-⚠️ <strong>歷史記錄僅保存在當前會話</strong><br>
-刷新頁面後會清空 (已修復 localStorage 錯誤)
-</div>
 </div>
 </div>
 
@@ -1135,12 +1145,11 @@ ${Object.entries(CONFIG.PRESET_SIZES).map(([k,v])=>'<option value="' + k + '">' 
 <div id="historyModal" class="modal">
 <div class="modal-content">
 <div class="modal-header">
-<h2>📜 生成歷史 (會話存儲)</h2>
+<h2>📜 生成歷史</h2>
 <span class="close" onclick="closeHistory()">&times;</span>
 </div>
 <div style="display:flex;justify-content:space-between;margin-bottom:20px">
 <button onclick="clearHistory()" style="width:auto;background:#ef4444">🗑️ 清空歷史</button>
-<small style="color:#9ca3af;align-self:center">僅保存在當前會話,刷新後清空</small>
 </div>
 <div id="historyList"></div>
 </div>
@@ -1341,12 +1350,11 @@ renderReferenceImages();
 }
 
 function loadHistory(){
-console.log('✓ History loaded (session only - v9.3.1)');
+console.log('✓ History loaded (session only - v9.3.3)');
 updateHistoryBadge();
 }
 
-function saveHistory(){
-}
+function saveHistory(){}
 
 function addToHistory(item){
 generationHistory.unshift({...item,timestamp:new Date().toISOString()});
@@ -1377,7 +1385,7 @@ document.getElementById('historyModal').style.display='none';
 function renderHistory(){
 const list=document.getElementById('historyList');
 if(generationHistory.length===0){
-list.innerHTML='<p style="text-align:center;color:#9ca3af">暫無歷史記錄 (僅保存在當前會話)</p>';
+list.innerHTML='<p style="text-align:center;color:#9ca3af">暫無歷史記錄</p>';
 return;
 }
 list.innerHTML='';
