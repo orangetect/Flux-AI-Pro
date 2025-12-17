@@ -1,4 +1,14 @@
-功能特點
+🎨 Flux AI Pro
+Version License Cloudflare API
+
+基於 Cloudflare Workers 的專業 AI 圖像生成服務
+
+✨ 最新版本：9.5.2-bytes - 返回圖片字節數據
+
+English | 中文 | 更新記錄
+
+中文
+✨ 功能特點
 🎨 4 個官方模型
 
 Z-Image Turbo ⚡ - 6B 參數，極速生成
