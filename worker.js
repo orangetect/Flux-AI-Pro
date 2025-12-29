@@ -1,38 +1,47 @@
 // =================================================================================
-//  項目: multi-provider-image-generator
-//  版本: 8.5.0 (完整最終版 + 自動高清)
-//  作者: Enhanced by AI Assistant
-//  日期: 2025-11-29
-//
-//  完整功能:
-//  ✅ 17個模型 (Flux + SD3)
-//  ✅ 12種風格預設
-//  ✅ NSFW 成人內容
-//  ✅ 智能參數優化
-//  ✅ 動態生成 UI
-//  ✅ 自動高清優化 (NEW!)
-//  ✅ 歷史記錄系統
-//  ✅ OpenAI 兼容 API
+//  項目: Flux AI Pro - Extended Styles Edition
+//  版本: 9.6.1-extended-styles (✅ 45+ 種藝術風格)
+//  作者: Enhanced by AI Assistant  
+//  日期: 2025-12-17
+//  更新: ✅ 45+ 種藝術風格 | ✅ 分類組織 | ✅ 新 API 端點
+//  模型: zimage, flux, turbo, kontext (4個模型)
 // =================================================================================
 
 const CONFIG = {
-  PROJECT_NAME: "multi-provider-image-generator",
-  PROJECT_VERSION: "8.5.0",
-  
+  PROJECT_NAME: "Flux-AI-Pro",
+  PROJECT_VERSION: "9.6.1-extended-styles",
   API_MASTER_KEY: "1",
+  FETCH_TIMEOUT: 120000,
+  MAX_RETRIES: 3,
+  
+  POLLINATIONS_AUTH: {
+    enabled: true,
+    token: "",  // 將從 env.POLLINATIONS_API_KEY 讀取
+    method: "header"
+  },
+  
+  PRESET_SIZES: {
+    "square-1k": { name: "方形 1024x1024", width: 1024, height: 1024 },
+    "square-1.5k": { name: "方形 1536x1536", width: 1536, height: 1536 },
+    "square-2k": { name: "方形 2048x2048", width: 2048, height: 2048 },
+    "portrait-9-16-hd": { name: "豎屏 9:16 HD", width: 1080, height: 1920 },
+    "landscape-16-9-hd": { name: "橫屏 16:9 HD", width: 1920, height: 1080 },
+    "instagram-square": { name: "Instagram 方形", width: 1080, height: 1080 },
+    "wallpaper-fhd": { name: "桌布 Full HD", width: 1920, height: 1080 }
+  },
   
   PROVIDERS: {
     pollinations: {
       name: "Pollinations.ai",
-      endpoint: "https://image.pollinations.ai",
+      endpoint: "https://gen.pollinations.ai",
+      pathPrefix: "/image",
       type: "direct",
-      auth_mode: "free",
-      requires_key: false,
+      auth_mode: "required",
+      requires_key: true,
       enabled: true,
       default: true,
-      description: "完全免費的 AI 圖像生成服務 - 支持 Flux & SD3 系列 + 自動高清",
+      description: "官方 AI 圖像生成服務（需要 API Key）",
       features: {
-        nsfw: true,
         private_mode: true,
         custom_size: true,
         seed_control: true,
@@ -40,24 +49,61 @@ const CONFIG = {
         enhance: true,
         nologo: true,
         style_presets: true,
-        auto_hd: true
+        auto_hd: true,
+        quality_modes: true,
+        auto_translate: true,
+        reference_images: true,
+        image_to_image: true,
+        batch_generation: true,
+        api_key_auth: true
       },
       models: [
-        { id: "flux", name: "Flux", confirmed: true, category: "flux", description: "均衡速度與質量" },
-        { id: "flux-realism", name: "Flux Realism", confirmed: true, category: "flux", description: "超寫實風格" },
-        { id: "flux-anime", name: "Flux Anime", confirmed: true, category: "flux", description: "日系動漫風格" },
-        { id: "flux-3d", name: "Flux 3D", confirmed: true, category: "flux", description: "3D 渲染風格" },
-        { id: "flux-pro", name: "Flux Pro", confirmed: true, category: "flux", description: "專業版最高質量" },
-        { id: "any-dark", name: "Any Dark", confirmed: true, category: "flux", description: "暗黑風格" },
-        { id: "turbo", name: "Turbo", confirmed: true, category: "flux", description: "極速生成" },
-        { id: "flux-1.1-pro", name: "Flux 1.1 Pro 🔥", confirmed: false, fallback: ["flux-pro", "flux-realism"], experimental: true, category: "flux-advanced", description: "最新 Flux 1.1" },
-        { id: "flux-kontext", name: "Flux Kontext 🎨", confirmed: false, fallback: ["flux-pro", "flux-realism"], experimental: true, category: "flux-advanced", description: "圖像編輯標準版" },
-        { id: "flux-kontext-pro", name: "Flux Kontext Pro 💎", confirmed: false, fallback: ["flux-kontext", "flux-pro", "flux-realism"], experimental: true, category: "flux-advanced", description: "圖像編輯專業版" },
-        { id: "sd3", name: "Stable Diffusion 3 ⚡", confirmed: false, fallback: ["flux-realism", "flux"], experimental: true, category: "stable-diffusion", description: "SD3 標準版" },
-        { id: "sd3.5-large", name: "SD 3.5 Large 🔥", confirmed: false, fallback: ["sd3", "flux-realism", "flux"], experimental: true, category: "stable-diffusion", description: "SD 3.5 大模型" },
-        { id: "sd3.5-turbo", name: "SD 3.5 Turbo ⚡", confirmed: false, fallback: ["turbo", "flux"], experimental: true, category: "stable-diffusion", description: "SD 3.5 快速版" },
-        { id: "sdxl", name: "SDXL 📐", confirmed: false, fallback: ["flux-realism", "flux"], experimental: true, category: "stable-diffusion", description: "經典 SDXL" },
-        { id: "sdxl-lightning", name: "SDXL Lightning ⚡", confirmed: false, fallback: ["turbo", "flux"], experimental: true, category: "stable-diffusion", description: "SDXL 極速版" }
+        { 
+          id: "zimage", 
+          name: "Z-Image Turbo ⚡", 
+          confirmed: true, 
+          category: "zimage", 
+          description: "快速 6B 參數圖像生成 (Alpha)", 
+          max_size: 2048,
+          pricing: { image_price: 0.0002, currency: "pollen" },
+          input_modalities: ["text"],
+          output_modalities: ["image"]
+        },
+        { 
+          id: "flux", 
+          name: "Flux 標準版", 
+          confirmed: true, 
+          category: "flux", 
+          description: "快速且高質量的圖像生成", 
+          max_size: 2048,
+          pricing: { image_price: 0.00012, currency: "pollen" },
+          input_modalities: ["text"],
+          output_modalities: ["image"]
+        },
+        { 
+          id: "turbo", 
+          name: "Flux Turbo ⚡", 
+          confirmed: true, 
+          category: "flux", 
+          description: "超快速圖像生成", 
+          max_size: 2048,
+          pricing: { image_price: 0.0003, currency: "pollen" },
+          input_modalities: ["text"],
+          output_modalities: ["image"]
+        },
+        { 
+          id: "kontext", 
+          name: "Kontext 🎨", 
+          confirmed: true, 
+          category: "kontext", 
+          description: "上下文感知圖像生成（支持圖生圖）", 
+          max_size: 2048,
+          pricing: { image_price: 0.04, currency: "pollen" },
+          supports_reference_images: true,
+          max_reference_images: 1,
+          input_modalities: ["text", "image"],
+          output_modalities: ["image"]
+        }
       ],
       rate_limit: null,
       max_size: { width: 2048, height: 2048 }
@@ -66,39 +112,363 @@ const CONFIG = {
   
   DEFAULT_PROVIDER: "pollinations",
   
+  // ========================================
+  // ✨ 擴展風格庫 - 45+ 種藝術風格
+  // ========================================
   STYLE_PRESETS: {
-    none: { name: "無 (使用原始提示詞)", prompt: "", negative: "" },
-    "japanese-manga": { name: "日本漫畫 🇯🇵", prompt: "Japanese manga style, manga art, black and white manga, detailed linework, screentone, manga panel", negative: "photograph, realistic, 3d render, western comic" },
-    "anime": { name: "動漫風格 ✨", prompt: "anime style, anime art, vibrant colors, anime character, detailed anime", negative: "realistic, photograph, 3d, ugly" },
-    "vector": { name: "矢量圖 📐", prompt: "vector art, flat design, clean lines, minimalist, geometric shapes, vector illustration", negative: "photograph, realistic, textured, noisy" },
-    "oil-painting": { name: "油畫 🎨", prompt: "oil painting, classical oil painting style, visible brushstrokes, rich colors, artistic", negative: "photograph, digital art, anime" },
-    "watercolor": { name: "水彩畫 💧", prompt: "watercolor painting, soft colors, watercolor texture, artistic, hand-painted", negative: "photograph, digital, sharp edges" },
-    "pixel-art": { name: "像素藝術 👾", prompt: "pixel art, 8-bit style, retro pixel graphics, pixelated", negative: "high resolution, smooth, realistic" },
-    "cyberpunk": { name: "賽博朋克 🌃", prompt: "cyberpunk style, neon lights, futuristic, sci-fi, dystopian, high-tech low-life", negative: "natural, rustic, medieval" },
-    "fantasy": { name: "奇幻風格 🐉", prompt: "fantasy art, magical, epic fantasy, detailed fantasy illustration", negative: "modern, realistic, mundane" },
-    "photorealistic": { name: "寫實照片 📷", prompt: "photorealistic, ultra realistic, 8k uhd, professional photography, detailed, sharp focus", negative: "anime, cartoon, illustration, painting" },
-    "studio-ghibli": { name: "吉卜力風格 🌿", prompt: "Studio Ghibli style, Ghibli art, Hayao Miyazaki style, whimsical, detailed background", negative: "dark, gritty, realistic" },
-    "comic-book": { name: "美式漫畫 💥", prompt: "comic book style, American comic art, bold lines, vibrant colors, superhero comic", negative: "photograph, manga, realistic" },
-    "sketch": { name: "素描 ✏️", prompt: "pencil sketch, hand-drawn, sketch art, graphite drawing, artistic sketch", negative: "colored, painted, digital" }
+    // ========== 基礎風格 ==========
+    none: { 
+      name: "無風格", 
+      prompt: "", 
+      negative: "",
+      category: "basic",
+      icon: "⚡",
+      description: "使用原始提示詞"
+    },
+    
+    // ========== 插畫動畫 ==========
+    anime: { 
+      name: "動漫風格", 
+      prompt: "anime style, anime art, vibrant colors, cel shading, detailed anime", 
+      negative: "realistic, photograph, 3d, ugly",
+      category: "illustration",
+      icon: "🎭",
+      description: "日系動漫風格"
+    },
+    ghibli: { 
+      name: "吉卜力", 
+      prompt: "Studio Ghibli style, Hayao Miyazaki, anime, soft colors, whimsical, detailed background, hand-drawn", 
+      negative: "realistic, dark, 3D, western animation",
+      category: "illustration",
+      icon: "🍃",
+      description: "宮崎駿動畫風格"
+    },
+    
+    // ========== 漫畫風格 ==========
+    manga: {
+      name: "日本漫畫",
+      prompt: "manga style, japanese comic art, black and white, screentones, halftone patterns, dynamic poses, detailed linework",
+      negative: "color, colorful, realistic, photo, western comic",
+      category: "manga",
+      icon: "📖",
+      description: "經典日本漫畫黑白網點"
+    },
+    "manga-color": {
+      name: "彩色日漫",
+      prompt: "colored manga style, japanese comic art, vibrant colors, cel shading, clean linework, digital coloring",
+      negative: "realistic, photo, western style, messy",
+      category: "manga",
+      icon: "🎨",
+      description: "彩色日本漫畫風格"
+    },
+    "american-comic": {
+      name: "美式漫畫",
+      prompt: "american comic book style, bold lines, vibrant colors, superhero art, dynamic action, dramatic shading",
+      negative: "anime, manga, realistic photo, soft",
+      category: "manga",
+      icon: "💥",
+      description: "美國超級英雄漫畫"
+    },
+    "korean-webtoon": {
+      name: "韓國網漫",
+      prompt: "korean webtoon style, manhwa art, detailed linework, soft colors, romantic, vertical scroll format",
+      negative: "american comic, rough sketch, dark",
+      category: "manga",
+      icon: "📱",
+      description: "韓國網路漫畫風格"
+    },
+    chibi: {
+      name: "Q版漫畫",
+      prompt: "chibi style, super deformed, cute, kawaii, big head small body, simple features, adorable",
+      negative: "realistic proportions, serious, dark",
+      category: "manga",
+      icon: "🥰",
+      description: "Q版可愛漫畫風格"
+    },
+    
+    // ========== 黑白單色 ==========
+    "black-white": {
+      name: "黑白",
+      prompt: "black and white, monochrome, high contrast, dramatic lighting, grayscale",
+      negative: "color, colorful, vibrant, saturated",
+      category: "monochrome",
+      icon: "⚫⚪",
+      description: "純黑白高對比效果"
+    },
+    sketch: {
+      name: "素描",
+      prompt: "pencil sketch, hand drawn, graphite drawing, detailed shading, artistic sketch, loose lines",
+      negative: "color, digital, polished, photo",
+      category: "monochrome",
+      icon: "✏️",
+      description: "鉛筆素描手繪質感"
+    },
+    "ink-drawing": {
+      name: "水墨畫",
+      prompt: "traditional chinese ink painting, sumi-e, brush strokes, minimalist, zen aesthetic, black ink on white paper",
+      negative: "color, western style, detailed, cluttered",
+      category: "monochrome",
+      icon: "🖌️",
+      description: "中國傳統水墨畫"
+    },
+    silhouette: {
+      name: "剪影",
+      prompt: "silhouette art, stark contrast, black shapes, minimalist, dramatic, shadow play, clean edges",
+      negative: "detailed, realistic, colorful, textured",
+      category: "monochrome",
+      icon: "👤",
+      description: "剪影藝術極簡構圖"
+    },
+    charcoal: {
+      name: "炭筆畫",
+      prompt: "charcoal drawing, rough texture, dramatic shading, expressive, smudged, artistic, monochrome",
+      negative: "clean, digital, colorful, precise",
+      category: "monochrome",
+      icon: "🖤",
+      description: "炭筆繪畫粗糙質感"
+    },
+    
+    // ========== 寫實風格 ==========
+    photorealistic: { 
+      name: "寫實照片", 
+      prompt: "photorealistic, 8k uhd, high quality, detailed, professional photography, sharp focus", 
+      negative: "anime, cartoon, illustration, painting, drawing, art",
+      category: "realistic",
+      icon: "📷",
+      description: "攝影級寫實效果"
+    },
+    
+    // ========== 繪畫風格 ==========
+    "oil-painting": { 
+      name: "油畫", 
+      prompt: "oil painting, canvas texture, visible brushstrokes, rich colors, artistic, masterpiece", 
+      negative: "photograph, digital art, anime, flat",
+      category: "painting",
+      icon: "🖼️",
+      description: "經典油畫質感"
+    },
+    watercolor: { 
+      name: "水彩畫", 
+      prompt: "watercolor painting, soft colors, watercolor texture, artistic, hand-painted, paper texture, flowing colors", 
+      negative: "photograph, digital, sharp edges, 3d",
+      category: "painting",
+      icon: "💧",
+      description: "清新水彩風格"
+    },
+    
+    // ========== 藝術流派 ==========
+    impressionism: {
+      name: "印象派",
+      prompt: "impressionist painting, soft brushstrokes, light and color focus, Monet style, outdoor scene, visible brush marks",
+      negative: "sharp, detailed, photorealistic, dark",
+      category: "art-movement",
+      icon: "🌅",
+      description: "印象派繪畫光影捕捉"
+    },
+    abstract: {
+      name: "抽象派",
+      prompt: "abstract art, non-representational, geometric shapes, bold colors, modern art, expressive",
+      negative: "realistic, figurative, detailed, representational",
+      category: "art-movement",
+      icon: "🎭",
+      description: "抽象藝術幾何圖形"
+    },
+    cubism: {
+      name: "立體主義",
+      prompt: "cubist style, geometric shapes, multiple perspectives, fragmented, Picasso inspired, angular forms",
+      negative: "realistic, smooth, traditional, single perspective",
+      category: "art-movement",
+      icon: "🔷",
+      description: "立體主義多視角解構"
+    },
+    surrealism: {
+      name: "超現實主義",
+      prompt: "surrealist art, dreamlike, bizarre, impossible scenes, Salvador Dali style, imaginative, symbolic",
+      negative: "realistic, mundane, ordinary, logical",
+      category: "art-movement",
+      icon: "🌀",
+      description: "超現實主義夢幻場景"
+    },
+    "pop-art": {
+      name: "普普藝術",
+      prompt: "pop art style, bold colors, comic book elements, Andy Warhol inspired, retro, screen print effect",
+      negative: "subtle, muted, traditional, realistic",
+      category: "art-movement",
+      icon: "🎪",
+      description: "普普藝術大膽色彩"
+    },
+    
+    // ========== 視覺風格 ==========
+    neon: {
+      name: "霓虹燈",
+      prompt: "neon lights, glowing, vibrant neon colors, night scene, electric, luminous, dark background",
+      negative: "daylight, muted, natural, dull",
+      category: "visual",
+      icon: "💡",
+      description: "霓虹燈發光效果"
+    },
+    vintage: {
+      name: "復古",
+      prompt: "vintage style, retro, aged, nostalgic, warm tones, classic, faded colors, old photograph",
+      negative: "modern, futuristic, clean, vibrant",
+      category: "visual",
+      icon: "📻",
+      description: "復古懷舊褪色效果"
+    },
+    steampunk: {
+      name: "蒸汽朋克",
+      prompt: "steampunk style, Victorian era, brass and copper, gears and mechanisms, mechanical, industrial",
+      negative: "modern, minimalist, clean, futuristic",
+      category: "visual",
+      icon: "⚙️",
+      description: "蒸汽朋克機械美學"
+    },
+    minimalist: {
+      name: "極簡主義",
+      prompt: "minimalist design, clean, simple, geometric, negative space, modern, uncluttered",
+      negative: "detailed, complex, ornate, busy",
+      category: "visual",
+      icon: "◽",
+      description: "極簡設計留白美學"
+    },
+    vaporwave: {
+      name: "蒸氣波",
+      prompt: "vaporwave aesthetic, retro futuristic, pastel colors, glitch art, 80s 90s nostalgia, neon pink and blue",
+      negative: "realistic, natural, muted, traditional",
+      category: "visual",
+      icon: "🌴",
+      description: "蒸氣波復古未來"
+    },
+    
+    // ========== 數位風格 ==========
+    "pixel-art": {
+      name: "像素藝術",
+      prompt: "pixel art, 8-bit, 16-bit, retro gaming style, pixelated, nostalgic, limited color palette",
+      negative: "high resolution, smooth, realistic, detailed",
+      category: "digital",
+      icon: "🎮",
+      description: "像素藝術復古遊戲"
+    },
+    "low-poly": {
+      name: "低多邊形",
+      prompt: "low poly 3d, geometric, faceted, minimalist 3d art, polygonal, angular shapes",
+      negative: "high poly, detailed, realistic, organic",
+      category: "digital",
+      icon: "🔺",
+      description: "低多邊形3D幾何"
+    },
+    "3d-render": {
+      name: "3D渲染",
+      prompt: "3d render, cinema 4d, octane render, detailed, professional lighting, ray tracing, photorealistic 3d",
+      negative: "2d, flat, hand drawn, sketchy",
+      category: "digital",
+      icon: "🎬",
+      description: "專業3D渲染寫實光影"
+    },
+    gradient: {
+      name: "漸變",
+      prompt: "gradient art, smooth color transitions, modern, vibrant gradients, soft blending, colorful",
+      negative: "solid colors, flat, harsh edges, traditional",
+      category: "digital",
+      icon: "🌈",
+      description: "漸變藝術柔和過渡"
+    },
+    glitch: {
+      name: "故障藝術",
+      prompt: "glitch art, digital corruption, RGB shift, distorted, cyberpunk, data moshing, scanlines",
+      negative: "clean, perfect, traditional, smooth",
+      category: "digital",
+      icon: "📺",
+      description: "故障美學數位崩壞"
+    },
+    
+    // ========== 傳統藝術 ==========
+    "ukiyo-e": {
+      name: "浮世繪",
+      prompt: "ukiyo-e style, japanese woodblock print, Hokusai inspired, traditional japanese art, flat colors, bold outlines",
+      negative: "modern, western, photographic, 3d",
+      category: "traditional",
+      icon: "🗾",
+      description: "日本浮世繪木刻版畫"
+    },
+    "stained-glass": {
+      name: "彩繪玻璃",
+      prompt: "stained glass art, colorful, leaded glass, church window style, luminous, geometric patterns, light through glass",
+      negative: "realistic, photographic, modern, opaque",
+      category: "traditional",
+      icon: "🪟",
+      description: "彩繪玻璃透光效果"
+    },
+    "paper-cut": {
+      name: "剪紙藝術",
+      prompt: "paper cut art, layered paper, shadow box effect, intricate patterns, handcrafted, silhouette",
+      negative: "painted, digital, realistic, photographic",
+      category: "traditional",
+      icon: "✂️",
+      description: "剪紙藝術層次堆疊"
+    },
+    
+    // ========== 美學風格 ==========
+    gothic: {
+      name: "哥特風格",
+      prompt: "gothic style, dark, ornate, Victorian gothic, mysterious, dramatic, baroque elements, elegant darkness",
+      negative: "bright, cheerful, minimalist, modern",
+      category: "aesthetic",
+      icon: "🦇",
+      description: "哥特美學黑暗華麗"
+    },
+    "art-nouveau": {
+      name: "新藝術",
+      prompt: "art nouveau style, organic forms, flowing lines, decorative, elegant, floral motifs, Alphonse Mucha inspired",
+      negative: "geometric, minimalist, modern, rigid",
+      category: "aesthetic",
+      icon: "🌺",
+      description: "新藝術流動線條"
+    },
+    
+    // ========== 科幻奇幻 ==========
+    cyberpunk: { 
+      name: "賽博朋克", 
+      prompt: "cyberpunk style, neon lights, futuristic, sci-fi, dystopian, high-tech low-life, blade runner style", 
+      negative: "natural, rustic, medieval, fantasy",
+      category: "scifi",
+      icon: "🌃",
+      description: "賽博朋克未來科幻"
+    },
+    fantasy: { 
+      name: "奇幻風格", 
+      prompt: "fantasy art, magical, epic fantasy, detailed fantasy illustration, mystical, enchanted", 
+      negative: "modern, realistic, mundane, contemporary",
+      category: "fantasy",
+      icon: "🐉",
+      description: "奇幻魔法世界"
+    }
+  },
+  // ========================================
+  // 風格分類配置
+  // ========================================
+  STYLE_CATEGORIES: {
+    'basic': { name: '基礎', icon: '⚡', order: 1 },
+    'illustration': { name: '插畫動畫', icon: '🎨', order: 2 },
+    'manga': { name: '漫畫風格', icon: '📖', order: 3 },
+    'monochrome': { name: '黑白單色', icon: '⚫', order: 4 },
+    'realistic': { name: '寫實照片', icon: '📷', order: 5 },
+    'painting': { name: '繪畫風格', icon: '🖼️', order: 6 },
+    'art-movement': { name: '藝術流派', icon: '🎭', order: 7 },
+    'visual': { name: '視覺風格', icon: '✨', order: 8 },
+    'digital': { name: '數位風格', icon: '💻', order: 9 },
+    'traditional': { name: '傳統藝術', icon: '🏛️', order: 10 },
+    'aesthetic': { name: '美學風格', icon: '🌟', order: 11 },
+    'scifi': { name: '科幻', icon: '🚀', order: 12 },
+    'fantasy': { name: '奇幻', icon: '🐉', order: 13 }
   },
   
   OPTIMIZATION_RULES: {
     MODEL_STEPS: {
-      "turbo": { min: 4, optimal: 8, max: 12 },
-      "sdxl-lightning": { min: 4, optimal: 6, max: 10 },
-      "sd3.5-turbo": { min: 8, optimal: 12, max: 20 },
+      "zimage": { min: 8, optimal: 15, max: 25 },
       "flux": { min: 15, optimal: 20, max: 30 },
-      "flux-anime": { min: 15, optimal: 20, max: 30 },
-      "flux-3d": { min: 15, optimal: 22, max: 35 },
-      "sd3": { min: 18, optimal: 25, max: 35 },
-      "sdxl": { min: 20, optimal: 28, max: 40 },
-      "flux-realism": { min: 20, optimal: 28, max: 40 },
-      "flux-pro": { min: 25, optimal: 32, max: 45 },
-      "flux-1.1-pro": { min: 20, optimal: 28, max: 40 },
-      "sd3.5-large": { min: 25, optimal: 35, max: 50 },
-      "flux-kontext": { min: 22, optimal: 30, max: 40 },
-      "flux-kontext-pro": { min: 25, optimal: 35, max: 45 },
-      "any-dark": { min: 18, optimal: 24, max: 35 }
+      "turbo": { min: 4, optimal: 8, max: 12 },
+      "kontext": { min: 18, optimal: 25, max: 35 }
     },
     SIZE_MULTIPLIER: {
       small: { threshold: 512 * 512, multiplier: 0.8 },
@@ -110,605 +480,902 @@ const CONFIG = {
       "photorealistic": 1.1,
       "oil-painting": 1.05,
       "watercolor": 0.95,
-      "pixel-art": 0.85,
       "sketch": 0.9,
-      "vector": 0.85,
+      "manga": 1.0,
+      "pixel-art": 0.85,
+      "3d-render": 1.15,
       "default": 1.0
     }
   },
   
   HD_OPTIMIZATION: {
     enabled: true,
+    QUALITY_MODES: {
+      economy: { 
+        name: "經濟模式", 
+        description: "快速出圖", 
+        min_resolution: 1024, 
+        max_resolution: 2048, 
+        steps_multiplier: 0.85, 
+        guidance_multiplier: 0.9, 
+        hd_level: "basic" 
+      },
+      standard: { 
+        name: "標準模式", 
+        description: "平衡質量與速度", 
+        min_resolution: 1280, 
+        max_resolution: 2048, 
+        steps_multiplier: 1.0, 
+        guidance_multiplier: 1.0, 
+        hd_level: "enhanced" 
+      },
+      ultra: { 
+        name: "超高清模式", 
+        description: "極致質量", 
+        min_resolution: 1536, 
+        max_resolution: 2048, 
+        steps_multiplier: 1.35, 
+        guidance_multiplier: 1.15, 
+        hd_level: "maximum", 
+        force_upscale: true 
+      }
+    },
     HD_PROMPTS: {
-      quality_boost: "high quality, extremely detailed, sharp focus, crisp, clear, professional",
-      resolution_boost: "8k uhd, high resolution, ultra HD, masterpiece",
-      texture_boost: "fine details, intricate details, highly detailed textures",
-      clarity_boost: "perfect clarity, crystal clear, no blur, no noise",
-      full_enhancement: "8k uhd, high quality, extremely detailed, sharp focus, crisp, clear, professional, masterpiece, fine details, intricate details, perfect clarity, crystal clear"
+      basic: "high quality, detailed, sharp",
+      enhanced: "high quality, highly detailed, sharp focus, professional, 8k uhd",
+      maximum: "masterpiece, best quality, ultra detailed, 8k uhd, high resolution, professional photography, sharp focus, HDR"
     },
-    HD_NEGATIVE: "low quality, blurry, pixelated, low resolution, jpeg artifacts, compression artifacts, bad quality, distorted, noisy, grainy, poor details, soft focus, out of focus",
-    MODEL_HD_STRATEGY: {
-      "flux-realism": { prompt_level: "full_enhancement", negative: true, upscale: true },
-      "flux-pro": { prompt_level: "full_enhancement", negative: true, upscale: true },
-      "flux-1.1-pro": { prompt_level: "full_enhancement", negative: true, upscale: true },
-      "sd3.5-large": { prompt_level: "full_enhancement", negative: true, upscale: true },
-      "flux": { prompt_level: "quality_boost", negative: true, upscale: false },
-      "sd3": { prompt_level: "quality_boost", negative: true, upscale: false },
-      "sdxl": { prompt_level: "quality_boost", negative: true, upscale: false },
-      "turbo": { prompt_level: "resolution_boost", negative: false, upscale: false },
-      "sdxl-lightning": { prompt_level: "resolution_boost", negative: false, upscale: false },
-      "sd3.5-turbo": { prompt_level: "resolution_boost", negative: false, upscale: false },
-      "flux-anime": { prompt_level: "clarity_boost", negative: true, upscale: false },
-      "flux-3d": { prompt_level: "clarity_boost", negative: true, upscale: false },
-      "any-dark": { prompt_level: "texture_boost", negative: true, upscale: false }
-    },
-    SIZE_RECOMMENDATION: {
-      min_recommended: 1024,
-      auto_upscale_threshold: 768,
-      max_size: 2048,
-      upscale_rules: {
-        "512x512": { suggested: "1024x1024", multiplier: 2 },
-        "768x768": { suggested: "1536x1536", multiplier: 2 },
-        "640x640": { suggested: "1280x1280", multiplier: 2 },
-        "512x768": { suggested: "1024x1536", multiplier: 2 },
-        "768x512": { suggested: "1536x1024", multiplier: 2 }
+    HD_NEGATIVE: "blurry, low quality, distorted, ugly, bad anatomy, low resolution, pixelated, artifacts, noise",
+    MODEL_QUALITY_PROFILES: {
+      "zimage": { 
+        min_resolution: 1024, 
+        max_resolution: 2048, 
+        optimal_steps_boost: 1.0, 
+        guidance_boost: 1.0, 
+        recommended_quality: "economy" 
+      },
+      "flux": { 
+        min_resolution: 1024, 
+        max_resolution: 2048, 
+        optimal_steps_boost: 1.1, 
+        guidance_boost: 1.0, 
+        recommended_quality: "standard" 
+      },
+      "turbo": { 
+        min_resolution: 1024, 
+        max_resolution: 2048, 
+        optimal_steps_boost: 0.9, 
+        guidance_boost: 0.95, 
+        recommended_quality: "economy" 
+      },
+      "kontext": { 
+        min_resolution: 1280, 
+        max_resolution: 2048, 
+        optimal_steps_boost: 1.2, 
+        guidance_boost: 1.1, 
+        recommended_quality: "ultra" 
       }
     }
-  },
-  
-  FETCH_TIMEOUT: 60000,
-  MAX_RETRIES: 3,
-  
-  PRESET_SIZES: {
-    "square": { width: 1024, height: 1024, name: "方形 1:1" },
-    "portrait": { width: 768, height: 1344, name: "豎屏 9:16" },
-    "landscape": { width: 1344, height: 768, name: "橫屏 16:9" },
-    "standard-portrait": { width: 768, height: 1024, name: "標準豎屏 3:4" },
-    "standard-landscape": { width: 1024, height: 768, name: "標準橫屏 4:3" },
-    "ultrawide": { width: 1536, height: 640, name: "超寬屏 21:9" },
-    "ultrawide-portrait": { width: 640, height: 1536, name: "超豎屏 9:21" },
-    "custom": { width: 1024, height: 1024, name: "自定義" }
-  },
-  
-  HISTORY: {
-    MAX_ITEMS: 100,
-    STORAGE_KEY: "image_generation_history"
   }
 };
 
+// =================================================================================
+// 工具類：Logger, IP獲取, 翻譯, 優化器
+// =================================================================================
+
 class Logger {
-    constructor() { this.logs = []; }
-    add(step, data) {
-        const time = new Date().toISOString().split('T')[1].slice(0, -1);
-        this.logs.push({ time, step, data });
-        console.log(`[${step}]`, data);
+  constructor() {
+    this.logs = [];
+  }
+  add(title, data) {
+    this.logs.push({ title, data, timestamp: new Date().toISOString() });
+  }
+  get() {
+    return this.logs;
+  }
+}
+
+function getClientIP(request) {
+  return request.headers.get('cf-connecting-ip') || 
+         request.headers.get('x-forwarded-for') || 
+         request.headers.get('x-real-ip') || 
+         'unknown';
+}
+
+async function translateToEnglish(text, env) {
+  try {
+    const hasChinese = /[\u4e00-\u9fa5]/.test(text);
+    if (!hasChinese) return { text: text, translated: false, reason: "No Chinese detected" };
+    
+    if (!env || !env.AI) {
+      console.warn("⚠️ Workers AI not configured");
+      return { text: text, translated: false, reason: "AI not configured" };
     }
-    get() { return this.logs; }
+    
+    try {
+      const response = await env.AI.run("@cf/meta/m2m100-1.2b", { 
+        text: text, 
+        source_lang: "chinese", 
+        target_lang: "english" 
+      });
+      
+      if (response && response.translated_text) {
+        console.log("✅ Translation:", text, "→", response.translated_text);
+        return { 
+          text: response.translated_text, 
+          translated: true, 
+          original: text, 
+          model: "m2m100-1.2b" 
+        };
+      }
+    } catch (error) {
+      console.error("❌ Translation failed:", error.message);
+    }
+    
+    return { text: text, translated: false };
+  } catch (error) {
+    console.error("❌ translateToEnglish error:", error);
+    return { text: text, translated: false, error: error.message };
+  }
+}
+
+class PromptAnalyzer {
+  static analyzeComplexity(prompt) {
+    const complexKeywords = [
+      'detailed', 'intricate', 'complex', 'elaborate', 
+      'realistic', 'photorealistic', 'hyperrealistic',
+      'architecture', 'cityscape', 'landscape', 'portrait',
+      'face', 'eyes', 'hair', 'texture', 'material',
+      'fabric', 'skin', 'lighting', 'shadows', 'reflections',
+      'fine details', 'high detail', 'ultra detailed',
+      '4k', '8k', 'uhd', 'hdr'
+    ];
+    
+    let score = 0;
+    const lowerPrompt = prompt.toLowerCase();
+    
+    complexKeywords.forEach(keyword => {
+      if (lowerPrompt.includes(keyword)) score += 0.1;
+    });
+    
+    if (prompt.length > 100) score += 0.2;
+    if (prompt.length > 200) score += 0.3;
+    if (prompt.split(',').length > 5) score += 0.15;
+    
+    return Math.min(score, 1.0);
+  }
+  
+  static recommendQualityMode(prompt, model) {
+    const complexity = this.analyzeComplexity(prompt);
+    const profile = CONFIG.HD_OPTIMIZATION.MODEL_QUALITY_PROFILES[model];
+    
+    if (profile?.recommended_quality) return profile.recommended_quality;
+    
+    if (complexity > 0.7) return 'ultra';
+    if (complexity > 0.4) return 'standard';
+    return 'economy';
+  }
 }
 
 class HDOptimizer {
-    static optimize(prompt, negativePrompt, model, width, height, autoHD = true) {
-        if (!autoHD || !CONFIG.HD_OPTIMIZATION.enabled) {
-            return {
-                prompt: prompt,
-                negativePrompt: negativePrompt,
-                width: width,
-                height: height,
-                optimized: false
-            };
-        }
-        
-        const hdConfig = CONFIG.HD_OPTIMIZATION;
-        const strategy = hdConfig.MODEL_HD_STRATEGY[model] || {
-            prompt_level: "quality_boost",
-            negative: true,
-            upscale: false
-        };
-        
-        const optimizations = [];
-        
-        let enhancedPrompt = prompt;
-        if (strategy.prompt_level && hdConfig.HD_PROMPTS[strategy.prompt_level]) {
-            const hdBoost = hdConfig.HD_PROMPTS[strategy.prompt_level];
-            enhancedPrompt = `${prompt}, ${hdBoost}`;
-            optimizations.push(`提示詞增強: ${strategy.prompt_level}`);
-        }
-        
-        let enhancedNegative = negativePrompt || "";
-        if (strategy.negative) {
-            enhancedNegative = enhancedNegative 
-                ? `${enhancedNegative}, ${hdConfig.HD_NEGATIVE}`
-                : hdConfig.HD_NEGATIVE;
-            optimizations.push(`負面提示詞: 已添加高清過濾`);
-        }
-        
-        let finalWidth = width;
-        let finalHeight = height;
-        let sizeUpscaled = false;
-        
-        if (strategy.upscale) {
-            const totalPixels = width * height;
-            const minPixels = hdConfig.SIZE_RECOMMENDATION.min_recommended ** 2;
-            
-            if (totalPixels < minPixels) {
-                const scale = Math.sqrt(minPixels / totalPixels);
-                finalWidth = Math.min(Math.round(width * scale / 64) * 64, hdConfig.SIZE_RECOMMENDATION.max_size);
-                finalHeight = Math.min(Math.round(height * scale / 64) * 64, hdConfig.SIZE_RECOMMENDATION.max_size);
-                sizeUpscaled = true;
-                optimizations.push(`尺寸提升: ${width}x${height} → ${finalWidth}x${finalHeight}`);
-            }
-        }
-        
-        const sizeKey = `${width}x${height}`;
-        if (hdConfig.SIZE_RECOMMENDATION.upscale_rules[sizeKey] && !sizeUpscaled) {
-            const rule = hdConfig.SIZE_RECOMMENDATION.upscale_rules[sizeKey];
-            const [suggestedW, suggestedH] = rule.suggested.split('x').map(Number);
-            
-            if (suggestedW <= hdConfig.SIZE_RECOMMENDATION.max_size) {
-                finalWidth = suggestedW;
-                finalHeight = suggestedH;
-                sizeUpscaled = true;
-                optimizations.push(`智能提升: ${width}x${height} → ${finalWidth}x${finalHeight}`);
-            }
-        }
-        
-        return {
-            prompt: enhancedPrompt,
-            negativePrompt: enhancedNegative,
-            width: finalWidth,
-            height: finalHeight,
-            optimized: true,
-            strategy: strategy,
-            optimizations: optimizations,
-            size_upscaled: sizeUpscaled
-        };
+  static optimize(prompt, negativePrompt, model, width, height, qualityMode = 'standard', autoHD = true) {
+    if (!autoHD || !CONFIG.HD_OPTIMIZATION.enabled) {
+      return { 
+        prompt: prompt, 
+        negativePrompt: negativePrompt, 
+        width: width, 
+        height: height, 
+        optimized: false 
+      };
     }
+    
+    const hdConfig = CONFIG.HD_OPTIMIZATION;
+    const modeConfig = hdConfig.QUALITY_MODES[qualityMode] || hdConfig.QUALITY_MODES.standard;
+    const profile = hdConfig.MODEL_QUALITY_PROFILES[model];
+    const optimizations = [];
+    
+    const hdLevel = modeConfig.hd_level;
+    let enhancedPrompt = prompt;
+    
+    if (hdConfig.HD_PROMPTS[hdLevel]) {
+      const hdBoost = hdConfig.HD_PROMPTS[hdLevel];
+      enhancedPrompt = prompt + ", " + hdBoost;
+      optimizations.push("HD增強: " + hdLevel);
+    }
+    
+    let enhancedNegative = negativePrompt || "";
+    if (qualityMode !== 'economy') {
+      enhancedNegative = enhancedNegative 
+        ? enhancedNegative + ", " + hdConfig.HD_NEGATIVE 
+        : hdConfig.HD_NEGATIVE;
+      optimizations.push("負面提示詞: 高清過濾");
+    }
+    
+    let finalWidth = width;
+    let finalHeight = height;
+    let sizeUpscaled = false;
+    
+    const maxModelRes = profile?.max_resolution || 2048;
+    const minRes = Math.max(modeConfig.min_resolution, profile?.min_resolution || 1024);
+    const currentRes = Math.min(width, height);
+    
+    if (currentRes < minRes || modeConfig.force_upscale) {
+      const scale = minRes / currentRes;
+      finalWidth = Math.min(Math.round(width * scale / 64) * 64, maxModelRes);
+      finalHeight = Math.min(Math.round(height * scale / 64) * 64, maxModelRes);
+      sizeUpscaled = true;
+      optimizations.push("尺寸優化: " + width + "x" + height + " → " + finalWidth + "x" + finalHeight);
+    }
+    
+    if (finalWidth > maxModelRes || finalHeight > maxModelRes) {
+      const scale = maxModelRes / Math.max(finalWidth, finalHeight);
+      finalWidth = Math.round(finalWidth * scale / 64) * 64;
+      finalHeight = Math.round(finalHeight * scale / 64) * 64;
+      optimizations.push("模型限制: 調整至 " + finalWidth + "x" + finalHeight);
+    }
+    
+    return { 
+      prompt: enhancedPrompt, 
+      negativePrompt: enhancedNegative, 
+      width: finalWidth, 
+      height: finalHeight, 
+      optimized: true, 
+      quality_mode: qualityMode, 
+      hd_level: hdLevel, 
+      optimizations: optimizations, 
+      size_upscaled: sizeUpscaled 
+    };
+  }
 }
 
 class ParameterOptimizer {
-    static optimizeSteps(model, width, height, style = 'none', userSteps = null) {
-        if (userSteps !== null && userSteps !== -1) {
-            const suggestion = this.calculateOptimalSteps(model, width, height, style);
-            return {
-                steps: userSteps,
-                optimized: false,
-                suggested: suggestion.steps,
-                reasoning: suggestion.reasoning,
-                user_override: true
-            };
-        }
-        return this.calculateOptimalSteps(model, width, height, style);
+  static optimizeSteps(model, width, height, style = 'none', qualityMode = 'standard', userSteps = null) {
+    if (userSteps !== null && userSteps !== -1) {
+      const suggestion = this.calculateOptimalSteps(model, width, height, style, qualityMode);
+      return { 
+        steps: userSteps, 
+        optimized: false, 
+        suggested: suggestion.steps, 
+        reasoning: suggestion.reasoning, 
+        user_override: true 
+      };
+    }
+    return this.calculateOptimalSteps(model, width, height, style, qualityMode);
+  }
+  
+  static calculateOptimalSteps(model, width, height, style, qualityMode = 'standard') {
+    const rules = CONFIG.OPTIMIZATION_RULES;
+    const modelRule = rules.MODEL_STEPS[model] || rules.MODEL_STEPS["flux"];
+    const modeConfig = CONFIG.HD_OPTIMIZATION.QUALITY_MODES[qualityMode];
+    const profile = CONFIG.HD_OPTIMIZATION.MODEL_QUALITY_PROFILES[model];
+    
+    let baseSteps = modelRule.optimal;
+    const reasoning = [];
+    reasoning.push(model + ": " + baseSteps + "步");
+    
+    const totalPixels = width * height;
+    let sizeMultiplier = 1.0;
+    
+    if (totalPixels >= rules.SIZE_MULTIPLIER.xlarge.threshold) {
+      sizeMultiplier = rules.SIZE_MULTIPLIER.xlarge.multiplier;
+      reasoning.push("超大 x" + sizeMultiplier);
+    } else if (totalPixels >= rules.SIZE_MULTIPLIER.large.threshold) {
+      sizeMultiplier = rules.SIZE_MULTIPLIER.large.multiplier;
+      reasoning.push("大尺寸 x" + sizeMultiplier);
+    } else if (totalPixels <= rules.SIZE_MULTIPLIER.small.threshold) {
+      sizeMultiplier = rules.SIZE_MULTIPLIER.small.multiplier;
+    } else {
+      sizeMultiplier = rules.SIZE_MULTIPLIER.medium.multiplier;
     }
     
-    static calculateOptimalSteps(model, width, height, style) {
-        const rules = CONFIG.OPTIMIZATION_RULES;
-        const modelRule = rules.MODEL_STEPS[model] || rules.MODEL_STEPS["flux"];
-        let baseSteps = modelRule.optimal;
-        
-        const reasoning = [];
-        reasoning.push(`模型 ${model} 基礎: ${baseSteps}步`);
-        
-        const totalPixels = width * height;
-        let sizeMultiplier = 1.0;
-        
-        if (totalPixels <= rules.SIZE_MULTIPLIER.small.threshold) {
-            sizeMultiplier = rules.SIZE_MULTIPLIER.small.multiplier;
-            reasoning.push(`小尺寸 x${sizeMultiplier}`);
-        } else if (totalPixels <= rules.SIZE_MULTIPLIER.medium.threshold) {
-            sizeMultiplier = rules.SIZE_MULTIPLIER.medium.multiplier;
-        } else if (totalPixels <= rules.SIZE_MULTIPLIER.large.threshold) {
-            sizeMultiplier = rules.SIZE_MULTIPLIER.large.multiplier;
-            reasoning.push(`大尺寸 x${sizeMultiplier}`);
-        } else {
-            sizeMultiplier = rules.SIZE_MULTIPLIER.xlarge.multiplier;
-            reasoning.push(`超大 x${sizeMultiplier}`);
-        }
-        
-        let styleMultiplier = rules.STYLE_ADJUSTMENT[style] || rules.STYLE_ADJUSTMENT.default;
-        if (styleMultiplier !== 1.0) {
-            reasoning.push(`風格 x${styleMultiplier}`);
-        }
-        
-        let optimizedSteps = Math.round(baseSteps * sizeMultiplier * styleMultiplier);
-        optimizedSteps = Math.max(modelRule.min, Math.min(optimizedSteps, modelRule.max));
-        
-        reasoning.push(`最終: ${optimizedSteps}步`);
-        
-        return {
-            steps: optimizedSteps,
-            optimized: true,
-            base_steps: baseSteps,
-            size_multiplier: sizeMultiplier,
-            style_multiplier: styleMultiplier,
-            min_steps: modelRule.min,
-            max_steps: modelRule.max,
-            reasoning: reasoning.join(' → ')
-        };
+    let styleMultiplier = rules.STYLE_ADJUSTMENT[style] || rules.STYLE_ADJUSTMENT.default;
+    let qualityMultiplier = modeConfig?.steps_multiplier || 1.0;
+    if (qualityMultiplier !== 1.0) reasoning.push(modeConfig.name + " x" + qualityMultiplier);
+    
+    let profileBoost = profile?.optimal_steps_boost || 1.0;
+    if (profileBoost !== 1.0) reasoning.push("模型配置 x" + profileBoost);
+    
+    let optimizedSteps = Math.round(baseSteps * sizeMultiplier * styleMultiplier * qualityMultiplier * profileBoost);
+    optimizedSteps = Math.max(modelRule.min, Math.min(optimizedSteps, modelRule.max));
+    
+    reasoning.push("→ " + optimizedSteps + "步");
+    
+    return { 
+      steps: optimizedSteps, 
+      optimized: true, 
+      base_steps: baseSteps, 
+      size_multiplier: sizeMultiplier, 
+      style_multiplier: styleMultiplier, 
+      quality_multiplier: qualityMultiplier, 
+      profile_boost: profileBoost, 
+      min_steps: modelRule.min, 
+      max_steps: modelRule.max, 
+      reasoning: reasoning.join(' ') 
+    };
+  }
+  
+  static optimizeGuidance(model, style, qualityMode = 'standard') {
+    const modeConfig = CONFIG.HD_OPTIMIZATION.QUALITY_MODES[qualityMode];
+    const profile = CONFIG.HD_OPTIMIZATION.MODEL_QUALITY_PROFILES[model];
+    
+    let baseGuidance = 7.5;
+    
+    if (model.includes('turbo')) {
+      baseGuidance = style === 'photorealistic' ? 3.0 : 2.5;
+    } else if (style === 'photorealistic') {
+      baseGuidance = 8.5;
+    } else if (['oil-painting', 'watercolor', 'sketch'].includes(style)) {
+      baseGuidance = 6.5;
+    } else if (['manga', 'anime', 'chibi'].includes(style)) {
+      baseGuidance = 7.0;
+    } else if (['pixel-art', 'low-poly'].includes(style)) {
+      baseGuidance = 6.0;
     }
     
-    static optimizeGuidance(model, style) {
-        if (model.includes('turbo') || model.includes('lightning')) {
-            return style === 'photorealistic' ? 3.0 : 2.5;
-        }
-        if (style === 'photorealistic') return 8.5;
-        if (['oil-painting', 'watercolor', 'sketch'].includes(style)) return 6.5;
-        return 7.5;
-    }
+    let qualityBoost = modeConfig?.guidance_multiplier || 1.0;
+    let profileBoost = profile?.guidance_boost || 1.0;
+    
+    return Math.round(baseGuidance * qualityBoost * profileBoost * 10) / 10;
+  }
 }
 
 class StyleProcessor {
-    static applyStyle(prompt, style, negativePrompt) {
-        const styleConfig = CONFIG.STYLE_PRESETS[style];
-        if (!styleConfig || style === 'none') {
-            return { enhancedPrompt: prompt, enhancedNegative: negativePrompt };
+  static applyStyle(prompt, style, negativePrompt) {
+    try {
+      if (!style || style === 'none' || style === '') {
+        return { 
+          enhancedPrompt: prompt, 
+          enhancedNegative: negativePrompt || "" 
+        };
+      }
+      
+      if (!CONFIG.STYLE_PRESETS || typeof CONFIG.STYLE_PRESETS !== 'object') {
+        console.warn("⚠️ STYLE_PRESETS not found");
+        return { 
+          enhancedPrompt: prompt, 
+          enhancedNegative: negativePrompt || "" 
+        };
+      }
+      
+      const styleConfig = CONFIG.STYLE_PRESETS[style];
+      if (!styleConfig) {
+        console.warn("⚠️ Style '" + style + "' not found");
+        return { 
+          enhancedPrompt: prompt, 
+          enhancedNegative: negativePrompt || "" 
+        };
+      }
+      
+      let enhancedPrompt = prompt;
+      if (styleConfig.prompt && styleConfig.prompt.trim()) {
+        enhancedPrompt = prompt + ", " + styleConfig.prompt;
+      }
+      
+      let enhancedNegative = negativePrompt || "";
+      if (styleConfig.negative && styleConfig.negative.trim()) {
+        if (enhancedNegative && enhancedNegative.trim()) {
+          enhancedNegative = enhancedNegative + ", " + styleConfig.negative;
+        } else {
+          enhancedNegative = styleConfig.negative;
         }
-        
-        let enhancedPrompt = prompt;
-        if (styleConfig.prompt) {
-            enhancedPrompt = `${prompt}, ${styleConfig.prompt}`;
-        }
-        
-        let enhancedNegative = negativePrompt || "";
-        if (styleConfig.negative) {
-            enhancedNegative = enhancedNegative 
-                ? `${enhancedNegative}, ${styleConfig.negative}`
-                : styleConfig.negative;
-        }
-        
-        return { enhancedPrompt, enhancedNegative };
+      }
+      
+      console.log("✅ Style applied:", style, "-", styleConfig.name);
+      return { 
+        enhancedPrompt: enhancedPrompt, 
+        enhancedNegative: enhancedNegative 
+      };
+    } catch (error) {
+      console.error("❌ StyleProcessor error:", error.message);
+      return { 
+        enhancedPrompt: prompt, 
+        enhancedNegative: negativePrompt || "" 
+      };
     }
+  }
 }
 
 async function fetchWithTimeout(url, options = {}, timeout = CONFIG.FETCH_TIMEOUT) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-    
-    try {
-        const response = await fetch(url, {
-            ...options,
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        return response;
-    } catch (error) {
-        clearTimeout(timeoutId);
-        if (error.name === 'AbortError') {
-            throw new Error(`Request timeout after ${timeout}ms`);
-        }
-        throw error;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error("Request timeout after " + timeout + "ms");
     }
-}
-
-class PollinationsProvider {
-    constructor(config) {
-        this.config = config;
-        this.name = config.name;
-    }
-    
-    async generate(prompt, options, logger) {
-        const {
-            model = "flux",
-            width = 1024,
-            height = 1024,
-            seed = -1,
-            negativePrompt = "",
-            guidance = null,
-            steps = null,
-            enhance = false,
-            nologo = true,
-            privateMode = true,
-            style = "none",
-            nsfw = false,
-            autoOptimize = true,
-            autoHD = true
-        } = options;
-        
-        let hdOptimization = null;
-        let finalPrompt = prompt;
-        let finalNegativePrompt = negativePrompt;
-        let finalWidth = width;
-        let finalHeight = height;
-        
-        if (autoHD) {
-            hdOptimization = HDOptimizer.optimize(
-                prompt,
-                negativePrompt,
-                model,
-                width,
-                height,
-                autoHD
-            );
-            
-            finalPrompt = hdOptimization.prompt;
-            finalNegativePrompt = hdOptimization.negativePrompt;
-            finalWidth = hdOptimization.width;
-            finalHeight = hdOptimization.height;
-            
-            if (hdOptimization.optimized) {
-                logger.add("🎨 HD Optimization", {
-                    original_size: `${width}x${height}`,
-                    optimized_size: `${finalWidth}x${finalHeight}`,
-                    size_upscaled: hdOptimization.size_upscaled,
-                    optimizations: hdOptimization.optimizations
-                });
-            }
-        }
-        
-        let finalSteps = steps;
-        let finalGuidance = guidance;
-        
-        if (autoOptimize) {
-            const stepsOptimization = ParameterOptimizer.optimizeSteps(
-                model, 
-                finalWidth,
-                finalHeight, 
-                style, 
-                steps
-            );
-            finalSteps = stepsOptimization.steps;
-            
-            logger.add("🎯 Steps Optimization", {
-                optimized: stepsOptimization.steps,
-                reasoning: stepsOptimization.reasoning
-            });
-            
-            if (guidance === null) {
-                finalGuidance = ParameterOptimizer.optimizeGuidance(model, style);
-            } else {
-                finalGuidance = guidance;
-            }
-        } else {
-            finalSteps = steps || 20;
-            finalGuidance = guidance || 7.5;
-        }
-        
-        const { enhancedPrompt, enhancedNegative } = StyleProcessor.applyStyle(
-            finalPrompt,
-            style, 
-            finalNegativePrompt
-        );
-        
-        const modelConfig = this.config.models.find(m => m.id === model);
-        const modelsToTry = [model];
-        
-        if (modelConfig?.experimental && modelConfig?.fallback) {
-            modelsToTry.push(...modelConfig.fallback);
-        }
-        
-        logger.add("🎨 Generation Config", {
-            provider: this.name,
-            model: model,
-            dimensions: `${finalWidth}x${finalHeight}`,
-            hd_optimized: autoHD && hdOptimization?.optimized,
-            optimized_steps: finalSteps,
-            optimized_guidance: finalGuidance
-        });
-        
-        const currentSeed = seed === -1 ? Math.floor(Math.random() * 1000000) : seed;
-        
-        let fullPrompt = enhancedPrompt;
-        if (enhancedNegative && enhancedNegative.trim()) {
-            fullPrompt = `${enhancedPrompt} [negative: ${enhancedNegative}]`;
-        }
-        
-        const encodedPrompt = encodeURIComponent(fullPrompt);
-        
-        for (const tryModel of modelsToTry) {
-            let lastError = null;
-            
-            for (let retry = 0; retry < CONFIG.MAX_RETRIES; retry++) {
-                try {
-                    let url = `${this.config.endpoint}/prompt/${encodedPrompt}`;
-                    
-                    const params = new URLSearchParams();
-                    params.append('model', tryModel);
-                    params.append('width', finalWidth.toString());
-                    params.append('height', finalHeight.toString());
-                    params.append('seed', currentSeed.toString());
-                    params.append('nologo', nologo.toString());
-                    params.append('enhance', enhance.toString());
-                    params.append('private', privateMode.toString());
-                    
-                    if (nsfw) {
-                        params.append('nsfw', 'true');
-                        params.append('safe', 'false');
-                    }
-                    
-                    if (finalGuidance !== 7.5) {
-                        params.append('guidance', finalGuidance.toString());
-                    }
-                    if (finalSteps !== 20) {
-                        params.append('steps', finalSteps.toString());
-                    }
-                    
-                    url += '?' + params.toString();
-                    
-                    const response = await fetchWithTimeout(url, {
-                        method: 'GET',
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                            'Accept': 'image/*,*/*',
-                            'Accept-Encoding': 'gzip, deflate, br',
-                            'Connection': 'keep-alive',
-                            'Referer': 'https://pollinations.ai/'
-                        }
-                    }, 45000);
-                    
-                    if (response.ok) {
-                        const contentType = response.headers.get('content-type');
-                        if (contentType && contentType.startsWith('image/')) {
-                            logger.add(`✅ Success`, { 
-                                url: response.url,
-                                used_model: tryModel,
-                                final_size: `${finalWidth}x${finalHeight}`,
-                                hd_optimized: autoHD && hdOptimization?.optimized,
-                                seed: currentSeed
-                            });
-                            
-                            return {
-                                url: response.url,
-                                provider: this.name,
-                                model: tryModel,
-                                requested_model: model,
-                                seed: currentSeed,
-                                style: style,
-                                nsfw: nsfw,
-                                steps: finalSteps,
-                                guidance: finalGuidance,
-                                width: finalWidth,
-                                height: finalHeight,
-                                hd_optimized: autoHD && hdOptimization?.optimized,
-                                hd_details: hdOptimization,
-                                cost: "FREE",
-                                fallback_used: tryModel !== model,
-                                auto_optimized: autoOptimize
-                            };
-                        } else {
-                            throw new Error(`Invalid content type: ${contentType}`);
-                        }
-                    } else {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
-                    
-                } catch (e) {
-                    lastError = e;
-                    
-                    if (retry < CONFIG.MAX_RETRIES - 1) {
-                        await new Promise(resolve => setTimeout(resolve, 1000 * (retry + 1)));
-                    }
-                }
-            }
-        }
-        
-        throw new Error(`All models failed`);
-    }
-}
-
-class MultiProviderRouter {
-    constructor(apiKeys = {}) {
-        this.providers = {};
-        this.apiKeys = apiKeys;
-        
-        for (const [key, config] of Object.entries(CONFIG.PROVIDERS)) {
-            if (config.enabled) {
-                if (key === 'pollinations') {
-                    this.providers[key] = new PollinationsProvider(config);
-                }
-            }
-        }
-    }
-    
-    getProvider(providerName = null) {
-        if (providerName && this.providers[providerName]) {
-            return { name: providerName, instance: this.providers[providerName] };
-        }
-        
-        const defaultName = CONFIG.DEFAULT_PROVIDER;
-        if (this.providers[defaultName]) {
-            return { name: defaultName, instance: this.providers[defaultName] };
-        }
-        
-        const firstProvider = Object.keys(this.providers)[0];
-        if (firstProvider) {
-            return { name: firstProvider, instance: this.providers[firstProvider] };
-        }
-        
-        throw new Error('No available provider');
-    }
-    
-    async generate(prompt, options, logger) {
-        const { provider: requestedProvider = null, numOutputs = 1 } = options;
-        
-        const { name: providerName, instance: provider } = this.getProvider(requestedProvider);
-        
-        const results = [];
-        
-        for (let i = 0; i < numOutputs; i++) {
-            const currentOptions = {
-                ...options,
-                seed: options.seed === -1 ? -1 : options.seed + i
-            };
-            
-            const result = await provider.generate(prompt, currentOptions, logger);
-            results.push(result);
-        }
-        
-        return results;
-    }
+    throw error;
+  }
 }
 
 function corsHeaders(additionalHeaders = {}) {
-    return {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-        'Access-Control-Max-Age': '86400',
-        ...additionalHeaders
-    };
+  return { 
+    'Access-Control-Allow-Origin': '*', 
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With', 
+    'Access-Control-Max-Age': '86400', 
+    ...additionalHeaders 
+  };
 }
+// =================================================================================
+// PollinationsProvider：核心圖像生成類
+// =================================================================================
+
+class PollinationsProvider {
+  constructor(config, env) {
+    this.config = config;
+    this.name = config.name;
+    this.env = env;
+  }
+  
+  async generate(prompt, options, logger) {
+    const { 
+      model = "zimage", 
+      width = 1024, 
+      height = 1024, 
+      seed = -1, 
+      negativePrompt = "", 
+      guidance = null, 
+      steps = null, 
+      enhance = false, 
+      nologo = true, 
+      privateMode = true, 
+      style = "none", 
+      autoOptimize = true, 
+      autoHD = true, 
+      qualityMode = 'standard',
+      referenceImages = []
+    } = options;
+    
+    const modelConfig = this.config.models.find(m => m.id === model);
+    const supportsRefImages = modelConfig?.supports_reference_images || false;
+    const maxRefImages = modelConfig?.max_reference_images || 0;
+    
+    let validReferenceImages = [];
+    if (referenceImages && referenceImages.length > 0) {
+      if (!supportsRefImages) {
+        logger.add("⚠️ Reference Images", { 
+          warning: model + " 不支持參考圖像，已忽略", 
+          supported_models: ["kontext"] 
+        });
+      } else if (referenceImages.length > maxRefImages) {
+        logger.add("⚠️ Reference Images", { 
+          warning: model + " 最多支持 " + maxRefImages + " 張參考圖", 
+          provided: referenceImages.length, 
+          using: maxRefImages 
+        });
+        validReferenceImages = referenceImages.slice(0, maxRefImages);
+      } else {
+        validReferenceImages = referenceImages;
+        logger.add("🖼️ Reference Images", { 
+          model: model, 
+          count: validReferenceImages.length, 
+          max_allowed: maxRefImages,
+          mode: "圖生圖"
+        });
+      }
+    }
+    
+    let hdOptimization = null;
+    let finalPrompt = prompt;
+    let finalNegativePrompt = negativePrompt;
+    let finalWidth = width;
+    let finalHeight = height;
+    
+    const promptComplexity = PromptAnalyzer.analyzeComplexity(prompt);
+    const recommendedQuality = PromptAnalyzer.recommendQualityMode(prompt, model);
+    logger.add("🧠 Prompt Analysis", { 
+      complexity: (promptComplexity * 100).toFixed(1) + '%', 
+      recommended_quality: recommendedQuality, 
+      selected_quality: qualityMode,
+      has_reference_images: validReferenceImages.length > 0
+    });
+    
+    if (autoHD) {
+      hdOptimization = HDOptimizer.optimize(
+        prompt, 
+        negativePrompt, 
+        model, 
+        width, 
+        height, 
+        qualityMode, 
+        autoHD
+      );
+      finalPrompt = hdOptimization.prompt;
+      finalNegativePrompt = hdOptimization.negativePrompt;
+      finalWidth = hdOptimization.width;
+      finalHeight = hdOptimization.height;
+      
+      if (hdOptimization.optimized) {
+        logger.add("🎨 HD Optimization", { 
+          mode: qualityMode, 
+          hd_level: hdOptimization.hd_level, 
+          original: width + "x" + height, 
+          optimized: finalWidth + "x" + finalHeight, 
+          upscaled: hdOptimization.size_upscaled, 
+          details: hdOptimization.optimizations 
+        });
+      }
+    }
+    
+    let finalSteps = steps;
+    let finalGuidance = guidance;
+    
+    if (autoOptimize) {
+      const stepsOptimization = ParameterOptimizer.optimizeSteps(
+        model, 
+        finalWidth, 
+        finalHeight, 
+        style, 
+        qualityMode, 
+        steps
+      );
+      finalSteps = stepsOptimization.steps;
+      logger.add("🎯 Steps Optimization", { 
+        steps: stepsOptimization.steps, 
+        reasoning: stepsOptimization.reasoning 
+      });
+      
+      if (guidance === null) {
+        finalGuidance = ParameterOptimizer.optimizeGuidance(model, style, qualityMode);
+      } else {
+        finalGuidance = guidance;
+      }
+    } else {
+      finalSteps = steps || 20;
+      finalGuidance = guidance || 7.5;
+    }
+    
+    const { enhancedPrompt, enhancedNegative } = StyleProcessor.applyStyle(
+      finalPrompt, 
+      style, 
+      finalNegativePrompt
+    );
+    
+    logger.add("🎨 Style Processing", { 
+      selected_style: style,
+      style_name: CONFIG.STYLE_PRESETS[style]?.name || style,
+      style_category: CONFIG.STYLE_PRESETS[style]?.category || 'unknown',
+      style_applied: style !== 'none',
+      original_prompt_length: finalPrompt.length,
+      enhanced_prompt_length: enhancedPrompt.length,
+      prompt_added: enhancedPrompt.length - finalPrompt.length
+    });
+    
+    const translation = await translateToEnglish(enhancedPrompt, this.env);
+    const finalPromptForAPI = translation.text;
+    
+    if (translation.translated) {
+      logger.add("🌐 Auto Translation", { 
+        original_zh: translation.original,
+        translated_en: finalPromptForAPI.substring(0, 100) + (finalPromptForAPI.length > 100 ? '...' : ''),
+        success: true,
+        model: translation.model || "unknown"
+      });
+    } else {
+      logger.add("⚠️ Translation", { 
+        status: "skipped",
+        reason: translation.reason || "Unknown",
+        using_original: true
+      });
+    }
+    
+    logger.add("🎨 Generation Config", { 
+      provider: this.name, 
+      model: model, 
+      dimensions: finalWidth + "x" + finalHeight,
+      quality_mode: qualityMode, 
+      hd_optimized: autoHD && hdOptimization?.optimized, 
+      auto_translated: translation.translated,
+      style_applied: style !== 'none',
+      reference_images: validReferenceImages.length,
+      generation_mode: validReferenceImages.length > 0 ? "圖生圖" : "文生圖",
+      steps: finalSteps, 
+      guidance: finalGuidance,
+      seed: seed
+    });
+    
+    const currentSeed = seed === -1 ? Math.floor(Math.random() * 1000000) : seed;
+    let fullPrompt = finalPromptForAPI;
+    if (enhancedNegative && enhancedNegative.trim()) {
+      fullPrompt = finalPromptForAPI + " [negative: " + enhancedNegative + "]";
+    }
+    
+    const encodedPrompt = encodeURIComponent(fullPrompt);
+    const pathPrefix = this.config.pathPrefix || "";
+    let baseUrl = this.config.endpoint + pathPrefix + "/" + encodedPrompt;
+    
+    const params = new URLSearchParams();
+    params.append('model', model);
+    params.append('width', finalWidth.toString());
+    params.append('height', finalHeight.toString());
+    params.append('seed', currentSeed.toString());
+    params.append('nologo', nologo.toString());
+    params.append('enhance', enhance.toString());
+    params.append('private', privateMode.toString());
+    
+    if (validReferenceImages && validReferenceImages.length > 0) {
+      params.append('image', validReferenceImages.join(','));
+      logger.add("🖼️ Reference Images Added", { 
+        count: validReferenceImages.length,
+        urls: validReferenceImages 
+      });
+    }
+    
+    if (finalGuidance !== 7.5) params.append('guidance', finalGuidance.toString());
+    if (finalSteps !== 20) params.append('steps', finalSteps.toString());
+    
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Accept': 'image/*',
+      'Referer': 'https://pollinations.ai/'
+    };
+    
+    const authConfig = CONFIG.POLLINATIONS_AUTH;
+    if (authConfig.enabled && authConfig.token) {
+      headers['Authorization'] = `Bearer ${authConfig.token}`;
+      logger.add("🔐 API Authentication", { 
+        method: "Bearer Token",
+        token_prefix: authConfig.token.substring(0, 8) + "...",
+        enabled: true,
+        endpoint: this.config.endpoint
+      });
+    } else {
+      logger.add("⚠️ No API Key", { 
+        authenticated: false,
+        note: "新 API 端點需要 API Key，請設置 POLLINATIONS_API_KEY 環境變量",
+        endpoint: this.config.endpoint,
+        warning: "未認證的請求可能會失敗"
+      });
+    }
+    
+    const url = baseUrl + '?' + params.toString();
+    
+    logger.add("📡 API Request", { 
+      endpoint: this.config.endpoint,
+      path: pathPrefix + "/" + encodedPrompt.substring(0, 50) + "...",
+      model: model,
+      authenticated: authConfig.enabled && !!authConfig.token,
+      full_url: url.substring(0, 100) + "..."
+    });
+    
+    for (let retry = 0; retry < CONFIG.MAX_RETRIES; retry++) {
+      try {
+        const response = await fetchWithTimeout(url, { 
+          method: 'GET', 
+          headers: headers
+        }, 120000);
+        
+        if (response.ok) {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.startsWith('image/')) {
+            logger.add("✅ Success", { 
+              url: response.url, 
+              used_model: model, 
+              final_size: finalWidth + "x" + finalHeight,
+              quality_mode: qualityMode, 
+              style_used: style,
+              style_name: CONFIG.STYLE_PRESETS[style]?.name || style,
+              hd_optimized: autoHD && hdOptimization?.optimized, 
+              auto_translated: translation.translated,
+              reference_images_used: validReferenceImages.length,
+              generation_mode: validReferenceImages.length > 0 ? "圖生圖" : "文生圖",
+              authenticated: authConfig.enabled && !!authConfig.token,
+              seed: currentSeed 
+            });
+            
+            const imageBlob = await response.blob();
+            const imageBuffer = await imageBlob.arrayBuffer();
+            
+            return { 
+              imageData: imageBuffer,
+              contentType: contentType,
+              url: response.url, 
+              provider: this.name, 
+              model: model, 
+              requested_model: model, 
+              seed: currentSeed, 
+              style: style, 
+              style_name: CONFIG.STYLE_PRESETS[style]?.name || style,
+              style_category: CONFIG.STYLE_PRESETS[style]?.category || 'unknown',
+              steps: finalSteps, 
+              guidance: finalGuidance, 
+              width: finalWidth, 
+              height: finalHeight,
+              quality_mode: qualityMode, 
+              prompt_complexity: promptComplexity, 
+              hd_optimized: autoHD && hdOptimization?.optimized, 
+              hd_details: hdOptimization, 
+              auto_translated: translation.translated,
+              reference_images: validReferenceImages,
+              reference_images_count: validReferenceImages.length,
+              generation_mode: validReferenceImages.length > 0 ? "圖生圖" : "文生圖",
+              authenticated: authConfig.enabled && !!authConfig.token,
+              cost: "FREE", 
+              auto_optimized: autoOptimize 
+            };
+          } else {
+            throw new Error("Invalid content type: " + contentType);
+          }
+        } else if (response.status === 401) {
+          throw new Error("Authentication failed: Invalid or missing API key. Please set POLLINATIONS_API_KEY");
+        } else if (response.status === 403) {
+          throw new Error("Access forbidden: API key may lack required permissions");
+        } else {
+          throw new Error("HTTP " + response.status + ": " + (await response.text()).substring(0, 200));
+        }
+      } catch (e) {
+        logger.add("❌ Request Failed", { 
+          error: e.message, 
+          model: model, 
+          retry: retry + 1,
+          max_retries: CONFIG.MAX_RETRIES,
+          endpoint: this.config.endpoint
+        });
+        
+        if (retry < CONFIG.MAX_RETRIES - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retry + 1)));
+        } else {
+          throw new Error("Generation failed: " + e.message);
+        }
+      }
+    }
+    throw new Error("Model " + model + " failed after " + CONFIG.MAX_RETRIES + " retries");
+  }
+}
+
+class MultiProviderRouter {
+  constructor(apiKeys = {}, env = null) {
+    this.providers = {};
+    this.apiKeys = apiKeys;
+    this.env = env;
+    
+    for (const [key, config] of Object.entries(CONFIG.PROVIDERS)) {
+      if (config.enabled) {
+        if (key === 'pollinations') {
+          this.providers[key] = new PollinationsProvider(config, env);
+        }
+      }
+    }
+  }
+  
+  getProvider(providerName = null) {
+    if (providerName && this.providers[providerName]) {
+      return { name: providerName, instance: this.providers[providerName] };
+    }
+    const defaultName = CONFIG.DEFAULT_PROVIDER;
+    if (this.providers[defaultName]) {
+      return { name: defaultName, instance: this.providers[defaultName] };
+    }
+    const firstProvider = Object.keys(this.providers)[0];
+    if (firstProvider) {
+      return { name: firstProvider, instance: this.providers[firstProvider] };
+    }
+    throw new Error('No available provider');
+  }
+  
+  async generate(prompt, options, logger) {
+    const { provider: requestedProvider = null, numOutputs = 1 } = options;
+    const { name: providerName, instance: provider } = this.getProvider(requestedProvider);
+    const results = [];
+    
+    for (let i = 0; i < numOutputs; i++) {
+      const currentOptions = { 
+        ...options, 
+        seed: options.seed === -1 ? -1 : options.seed + i 
+      };
+      const result = await provider.generate(prompt, currentOptions, logger);
+      results.push(result);
+    }
+    
+    return results;
+  }
+}
+// =================================================================================
+// 主入口：Worker Fetch Handler
+// =================================================================================
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const startTime = Date.now();
+    const clientIP = getClientIP(request);
+    
+    // 從環境變量讀取 API Key
+    if (env.POLLINATIONS_API_KEY) {
+      CONFIG.POLLINATIONS_AUTH.enabled = true;
+      CONFIG.POLLINATIONS_AUTH.token = env.POLLINATIONS_API_KEY;
+    } else {
+      console.warn("⚠️ POLLINATIONS_API_KEY not set - requests may fail on new API endpoint");
+      CONFIG.POLLINATIONS_AUTH.enabled = false;
+      CONFIG.POLLINATIONS_AUTH.token = "";
+    }
+    
+    console.log("=== Request Info ===");
+    console.log("IP:", clientIP);
+    console.log("Path:", url.pathname);
+    console.log("Method:", request.method);
+    console.log("Workers AI:", !!env.AI);
+    console.log("API Auth:", CONFIG.POLLINATIONS_AUTH.enabled ? "✅ Enabled" : "❌ Disabled");
+    console.log("API Endpoint:", CONFIG.PROVIDERS.pollinations.endpoint);
+    console.log("Styles Count:", Object.keys(CONFIG.STYLE_PRESETS).length);
+    console.log("===================");
     
     if (request.method === 'OPTIONS') {
-      return new Response(null, { 
-        status: 204, 
-        headers: corsHeaders()
-      });
+      return new Response(null, { status: 204, headers: corsHeaders() });
     }
-
+    
     try {
-      if (url.pathname === '/') {
-        return handleUI(request);
-      } 
-      else if (url.pathname === '/v1/chat/completions') {
-        return handleChatCompletions(request);
-      } 
-      else if (url.pathname === '/v1/images/generations') {
-        return handleImageGenerations(request);
-      }
-      else if (url.pathname === '/v1/models') {
-        return handleModelsRequest();
-      }
-      else if (url.pathname === '/v1/providers') {
-        return handleProvidersRequest();
-      }
-      else if (url.pathname === '/v1/styles') {
-        return handleStylesRequest();
-      }
-      else if (url.pathname === '/health') {
-        return new Response(JSON.stringify({
+      let response;
+      
+      if (url.pathname === '/' || url.pathname === '') {
+        response = handleUI(request);
+      } else if (url.pathname === '/_internal/generate') {
+        response = await handleInternalGenerate(request, env, ctx);
+      } else if (url.pathname === '/health') {
+        response = new Response(JSON.stringify({
           status: 'ok',
           version: CONFIG.PROJECT_VERSION,
-          timestamp: new Date().toISOString()
-        }), {
-          headers: corsHeaders({ 'Content-Type': 'application/json' })
-        });
-      }
-      else {
-        return new Response(JSON.stringify({
-          project: CONFIG.PROJECT_NAME,
-          version: CONFIG.PROJECT_VERSION,
-          features: ['17 Models', '12 Styles', 'Smart Optimization', 'Auto HD', 'NSFW', 'History'],
-          endpoints: [
-            '/v1/images/generations',
-            '/v1/chat/completions',
-            '/v1/models',
-            '/v1/providers',
-            '/v1/styles',
-            '/health'
-          ]
+          timestamp: new Date().toISOString(),
+          workers_ai: !!env.AI,
+          styles_count: Object.keys(CONFIG.STYLE_PRESETS).length,
+          api_auth: {
+            enabled: CONFIG.POLLINATIONS_AUTH.enabled,
+            method: CONFIG.POLLINATIONS_AUTH.method,
+            has_token: !!CONFIG.POLLINATIONS_AUTH.token,
+            endpoint: CONFIG.PROVIDERS.pollinations.endpoint
+          },
+          models: CONFIG.PROVIDERS.pollinations.models.map(m => ({
+            id: m.id,
+            name: m.name,
+            category: m.category,
+            supports_reference_images: m.supports_reference_images || false
+          })),
+          style_categories: Object.keys(CONFIG.STYLE_CATEGORIES).map(key => ({
+            id: key,
+            name: CONFIG.STYLE_CATEGORIES[key].name,
+            icon: CONFIG.STYLE_CATEGORIES[key].icon,
+            count: Object.values(CONFIG.STYLE_PRESETS).filter(s => s.category === key).length
+          }))
         }), { 
-          headers: corsHeaders({ 'Content-Type': 'application/json' })
+          headers: corsHeaders({ 'Content-Type': 'application/json' }) 
+        });
+      } else {
+        response = new Response(JSON.stringify({
+          error: 'Not Found',
+          message: '此 Worker 僅提供 Web UI 界面',
+          available_paths: ['/', '/health', '/_internal/generate']
+        }), { 
+          status: 404,
+          headers: corsHeaders({ 'Content-Type': 'application/json' }) 
         });
       }
+      
+      const duration = Date.now() - startTime;
+      const headers = new Headers(response.headers);
+      headers.set('X-Response-Time', duration + 'ms');
+      headers.set('X-Worker-Version', CONFIG.PROJECT_VERSION);
+      headers.set('X-API-Endpoint', CONFIG.PROVIDERS.pollinations.endpoint);
+      headers.set('X-API-Authenticated', CONFIG.POLLINATIONS_AUTH.enabled ? 'true' : 'false');
+      headers.set('X-Styles-Count', Object.keys(CONFIG.STYLE_PRESETS).length.toString());
+      
+      return new Response(response.body, { 
+        status: response.status, 
+        headers: headers 
+      });
     } catch (error) {
+      const duration = Date.now() - startTime;
       console.error('Worker error:', error);
       return new Response(JSON.stringify({
         error: {
           message: error.message,
-          type: 'worker_error'
+          type: 'worker_error',
+          timestamp: new Date().toISOString(),
+          duration_ms: duration
         }
       }), {
         status: 500,
@@ -718,1406 +1385,977 @@ export default {
   }
 };
 
-async function handleChatCompletions(request) {
-    const logger = new Logger();
-    
-    try {
-        const body = await request.json();
-        const isWebUI = body.is_web_ui === true;
+// =================================================================================
+// 內部生成處理函數
+// =================================================================================
 
-        const messages = body.messages || [];
-        const lastMsg = messages[messages.length - 1];
+async function handleInternalGenerate(request, env, ctx) {
+  const logger = new Logger();
+  const startTime = Date.now();
+  
+  try {
+    const body = await request.json();
+    const prompt = body.prompt;
+    if (!prompt || !prompt.trim()) {
+      throw new Error("Prompt is required");
+    }
+    
+    if (!CONFIG.POLLINATIONS_AUTH.enabled || !CONFIG.POLLINATIONS_AUTH.token) {
+      logger.add("⚠️ API Key Warning", {
+        status: "missing",
+        message: "POLLINATIONS_API_KEY 未設置，請求可能會失敗",
+        endpoint: CONFIG.PROVIDERS.pollinations.endpoint,
+        recommendation: "請使用 'wrangler secret put POLLINATIONS_API_KEY' 設置 API Key"
+      });
+    }
+    
+    let width = 1024, height = 1024;
+    if (body.width) width = body.width;
+    if (body.height) height = body.height;
+    
+    let referenceImages = [];
+    if (body.reference_images && Array.isArray(body.reference_images)) {
+      referenceImages = body.reference_images.filter(url => {
+        try {
+          new URL(url);
+          return true;
+        } catch {
+          return false;
+        }
+      });
+    }
+    
+    const seedInput = body.seed !== undefined ? body.seed : -1;
+    let seedValue = -1;
+    if (seedInput !== -1) {
+      const parsedSeed = parseInt(seedInput);
+      if (!isNaN(parsedSeed) && parsedSeed >= 0 && parsedSeed <= 999999) {
+        seedValue = parsedSeed;
+      }
+    }
+    
+    const options = { 
+      provider: body.provider || null, 
+      model: body.model || "zimage", 
+      width: Math.min(Math.max(width, 256), 2048), 
+      height: Math.min(Math.max(height, 256), 2048), 
+      numOutputs: Math.min(Math.max(body.n || 1, 1), 4), 
+      seed: seedValue,
+      negativePrompt: body.negative_prompt || "", 
+      guidance: body.guidance_scale || null, 
+      steps: body.steps || null, 
+      enhance: body.enhance === true, 
+      nologo: body.nologo !== false, 
+      privateMode: body.private !== false, 
+      style: body.style || "none", 
+      autoOptimize: body.auto_optimize !== false, 
+      autoHD: body.auto_hd !== false, 
+      qualityMode: body.quality_mode || 'standard',
+      referenceImages: referenceImages
+    };
+    
+    const router = new MultiProviderRouter({}, env);
+    const results = await router.generate(prompt, options, logger);
+    
+    const duration = Date.now() - startTime;
+    
+    // 單張圖片：直接返回圖片字節
+    if (results.length === 1 && results[0].imageData) {
+      const result = results[0];
+      
+      return new Response(result.imageData, {
+        headers: {
+          'Content-Type': result.contentType || 'image/png',
+          'Content-Disposition': `inline; filename="flux-ai-${result.seed}.png"`,
+          'X-Model': result.model,
+          'X-Model-Name': result.style_name || result.model,
+          'X-Seed': result.seed.toString(),
+          'X-Width': result.width.toString(),
+          'X-Height': result.height.toString(),
+          'X-Generation-Time': duration + 'ms',
+          'X-Quality-Mode': result.quality_mode,
+          'X-Style': result.style,
+          'X-Style-Name': result.style_name || result.style,
+          'X-Style-Category': result.style_category || 'unknown',
+          'X-Generation-Mode': result.generation_mode || '文生圖',
+          'X-Authenticated': result.authenticated ? 'true' : 'false',
+          'X-API-Endpoint': CONFIG.PROVIDERS.pollinations.endpoint,
+          ...corsHeaders()
+        }
+      });
+    }
+    
+    // 多張圖片：返回 JSON（包含 base64）
+    const imagesData = await Promise.all(results.map(async (r) => {
+      if (r.imageData) {
+        const uint8Array = new Uint8Array(r.imageData);
+        let binary = '';
+        const len = uint8Array.byteLength;
+        for (let i = 0; i < len; i++) {
+          binary += String.fromCharCode(uint8Array[i]);
+        }
+        const base64 = btoa(binary);
         
-        if (!lastMsg) throw new Error("No messages found");
-
-        let prompt = "";
-        if (typeof lastMsg.content === 'string') {
-            prompt = lastMsg.content;
-        } else if (Array.isArray(lastMsg.content)) {
-            for (const part of lastMsg.content) {
-                if (part.type === 'text') {
-                    prompt += part.text + " ";
-                }
-            }
-        }
-
-        prompt = prompt.trim();
-        if (!prompt) throw new Error("Empty prompt");
-
-        const options = {
-            provider: body.provider || null,
-            model: body.model || "flux",
-            width: body.width || 1024,
-            height: body.height || 1024,
-            numOutputs: Math.min(Math.max(body.n || 1, 1), 4),
-            seed: body.seed !== undefined ? body.seed : -1,
-            negativePrompt: body.negative_prompt || "",
-            guidance: body.guidance_scale || null,
-            steps: body.steps || null,
-            enhance: body.enhance === true,
-            nologo: body.nologo !== false,
-            privateMode: body.private !== false,
-            style: body.style || "none",
-            nsfw: body.nsfw === true,
-            autoOptimize: body.auto_optimize !== false,
-            autoHD: body.auto_hd !== false
+        return {
+          image: `data:${r.contentType};base64,${base64}`,
+          model: r.model,
+          seed: r.seed,
+          width: r.width,
+          height: r.height,
+          quality_mode: r.quality_mode,
+          style: r.style,
+          style_name: r.style_name || r.style,
+          style_category: r.style_category || 'unknown',
+          generation_mode: r.generation_mode,
+          authenticated: r.authenticated
         };
-
-        const router = new MultiProviderRouter();
-        const results = await router.generate(prompt, options, logger);
-
-        let respContent = "";
-        results.forEach((result, index) => {
-            respContent += `![Generated Image ${index + 1}](${result.url})\n`;
-        });
-
-        const respId = `chatcmpl-${crypto.randomUUID()}`;
-
-        if (body.stream) {
-            const { readable, writable } = new TransformStream();
-            const writer = writable.getWriter();
-            const encoder = new TextEncoder();
-
-            (async () => {
-                try {
-                    if (isWebUI) {
-                        await writer.write(encoder.encode(`data: ${JSON.stringify({ debug: logger.get() })}\n\n`));
-                    }
-
-                    const chunk = {
-                        id: respId, 
-                        object: 'chat.completion.chunk', 
-                        created: Math.floor(Date.now()/1000),
-                        model: options.model, 
-                        choices: [{ index: 0, delta: { content: respContent }, finish_reason: null }]
-                    };
-                    await writer.write(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
-                    
-                    const endChunk = {
-                        id: respId, 
-                        object: 'chat.completion.chunk', 
-                        created: Math.floor(Date.now()/1000),
-                        model: options.model, 
-                        choices: [{ index: 0, delta: {}, finish_reason: 'stop' }]
-                    };
-                    await writer.write(encoder.encode(`data: ${JSON.stringify(endChunk)}\n\n`));
-                    await writer.write(encoder.encode('data: [DONE]\n\n'));
-                } finally {
-                    await writer.close();
-                }
-            })();
-
-            return new Response(readable, {
-                headers: corsHeaders({ 'Content-Type': 'text/event-stream' })
-            });
-        } else {
-            return new Response(JSON.stringify({
-                id: respId,
-                object: "chat.completion",
-                created: Math.floor(Date.now() / 1000),
-                model: options.model,
-                choices: [{
-                    index: 0,
-                    message: { role: "assistant", content: respContent },
-                    finish_reason: "stop"
-                }]
-            }), { 
-              headers: corsHeaders({ 'Content-Type': 'application/json' })
-            });
-        }
-    } catch (e) {
-        logger.add("❌ Error", e.message);
-        return new Response(JSON.stringify({
-          error: { 
-            message: e.message,
-            debug_logs: logger.get()
-          }
-        }), { 
-          status: 500,
-          headers: corsHeaders({ 'Content-Type': 'application/json' })
-        });
-    }
-}
-
-async function handleImageGenerations(request) {
-    const logger = new Logger();
-
-    try {
-        const body = await request.json();
-        
-        const prompt = body.prompt;
-        if (!prompt || !prompt.trim()) {
-            throw new Error("Prompt is required");
-        }
-
-        let width = 1024, height = 1024;
-        if (body.size) {
-            const [w, h] = body.size.split('x').map(Number);
-            if (w && h) {
-                width = w;
-                height = h;
-            }
-        }
-        if (body.width) width = body.width;
-        if (body.height) height = body.height;
-
-        const options = {
-            provider: body.provider || null,
-            model: body.model || "flux",
-            width: Math.min(Math.max(width, 256), 2048),
-            height: Math.min(Math.max(height, 256), 2048),
-            numOutputs: Math.min(Math.max(body.n || 1, 1), 4),
-            seed: body.seed !== undefined ? body.seed : -1,
-            negativePrompt: body.negative_prompt || "",
-            guidance: body.guidance_scale || null,
-            steps: body.steps || null,
-            enhance: body.enhance === true,
-            nologo: body.nologo !== false,
-            privateMode: body.private !== false,
-            style: body.style || "none",
-            nsfw: body.nsfw === true,
-            autoOptimize: body.auto_optimize !== false,
-            autoHD: body.auto_hd !== false
-        };
-
-        const router = new MultiProviderRouter();
-        const results = await router.generate(prompt, options, logger);
-
-        return new Response(JSON.stringify({
-            created: Math.floor(Date.now() / 1000),
-            data: results.map(r => ({ 
-                url: r.url,
-                provider: r.provider,
-                model: r.model,
-                seed: r.seed,
-                width: r.width,
-                height: r.height,
-                style: r.style,
-                nsfw: r.nsfw,
-                steps: r.steps,
-                guidance: r.guidance,
-                auto_optimized: r.auto_optimized,
-                hd_optimized: r.hd_optimized,
-                cost: r.cost
-            }))
-        }), { 
-          headers: corsHeaders({ 'Content-Type': 'application/json' })
-        });
-    } catch (e) {
-        logger.add("❌ Error", e.message);
-        return new Response(JSON.stringify({
-          error: { 
-            message: e.message,
-            debug_logs: logger.get()
-          }
-        }), { 
-          status: 500,
-          headers: corsHeaders({ 'Content-Type': 'application/json' })
-        });
-    }
-}
-
-function handleModelsRequest() {
-    const models = [];
-    
-    for (const [providerKey, providerConfig] of Object.entries(CONFIG.PROVIDERS)) {
-        if (providerConfig.enabled && providerConfig.models) {
-            for (const model of providerConfig.models) {
-                models.push({
-                    id: model.id,
-                    object: 'model',
-                    name: model.name,
-                    provider: providerKey,
-                    category: model.category,
-                    confirmed: model.confirmed || false,
-                    experimental: model.experimental || false,
-                    description: model.description
-                });
-            }
-        }
-    }
-    
-    return new Response(JSON.stringify({
-        object: 'list',
-        data: models,
-        total: models.length
-    }), { 
-      headers: corsHeaders({ 'Content-Type': 'application/json' })
-    });
-}
-
-function handleProvidersRequest() {
-    const providers = {};
-    
-    for (const [key, config] of Object.entries(CONFIG.PROVIDERS)) {
-        providers[key] = {
-            name: config.name,
-            endpoint: config.endpoint,
-            auth_mode: config.auth_mode,
-            enabled: config.enabled,
-            features: config.features
-        };
-    }
-    
-    return new Response(JSON.stringify({
-        object: 'list',
-        data: providers
-    }), { 
-      headers: corsHeaders({ 'Content-Type': 'application/json' })
-    });
-}
-
-function handleStylesRequest() {
-    const styles = Object.entries(CONFIG.STYLE_PRESETS).map(([key, value]) => ({
-        id: key,
-        name: value.name,
-        prompt_addition: value.prompt,
-        negative_addition: value.negative
+      }
+      return null;
     }));
     
-    return new Response(JSON.stringify({
-        object: 'list',
-        data: styles
+    return new Response(JSON.stringify({ 
+      created: Math.floor(Date.now() / 1000), 
+      data: imagesData.filter(d => d !== null),
+      generation_time_ms: duration,
+      api_endpoint: CONFIG.PROVIDERS.pollinations.endpoint,
+      authenticated: CONFIG.POLLINATIONS_AUTH.enabled,
+      styles_available: Object.keys(CONFIG.STYLE_PRESETS).length
     }), { 
-      headers: corsHeaders({ 'Content-Type': 'application/json' })
+      headers: corsHeaders({ 
+        'Content-Type': 'application/json',
+        'X-Generation-Time': duration + 'ms',
+        'X-API-Endpoint': CONFIG.PROVIDERS.pollinations.endpoint,
+        'X-Styles-Count': Object.keys(CONFIG.STYLE_PRESETS).length.toString()
+      }) 
     });
+    
+  } catch (e) {
+    logger.add("❌ Error", e.message);
+    return new Response(JSON.stringify({ 
+      error: { 
+        message: e.message, 
+        debug_logs: logger.get(),
+        api_endpoint: CONFIG.PROVIDERS.pollinations.endpoint,
+        authenticated: CONFIG.POLLINATIONS_AUTH.enabled
+      } 
+    }), { 
+      status: 400, 
+      headers: corsHeaders({ 'Content-Type': 'application/json' }) 
+    });
+  }
 }
+// =================================================================================
+// Web UI 界面處理函數（包含 45+ 風格分類選擇器）
+// =================================================================================
 
-function handleUI(request) {
-  const origin = new URL(request.url).origin;
-  
-  const defaultProvider = CONFIG.PROVIDERS[CONFIG.DEFAULT_PROVIDER];
-  
-  const fluxModels = defaultProvider.models
-    .filter(m => m.category === 'flux')
-    .map(m => `<option value="${m.id}">${m.name}</option>`)
-    .join('\n');
+function handleUI() {
+  const authStatus = CONFIG.POLLINATIONS_AUTH.enabled ? 
+    '<span style="color:#22c55e;font-weight:600;font-size:12px">🔐 已認證</span>' : 
+    '<span style="color:#f59e0b;font-weight:600;font-size:12px">⚠️ 需要 API Key</span>';
     
-  const fluxAdvanced = defaultProvider.models
-    .filter(m => m.category === 'flux-advanced')
-    .map(m => `<option value="${m.id}">${m.name}</option>`)
-    .join('\n');
+  const apiEndpoint = CONFIG.PROVIDERS.pollinations.endpoint;
+  const stylesCount = Object.keys(CONFIG.STYLE_PRESETS).length;
+  
+  // 生成風格選項（按分類組織）
+  const styleCategories = CONFIG.STYLE_CATEGORIES;
+  const stylePresets = CONFIG.STYLE_PRESETS;
+  
+  let styleOptionsHTML = '';
+  
+  // 按分類順序排序
+  const sortedCategories = Object.entries(styleCategories)
+    .sort((a, b) => a[1].order - b[1].order);
+  
+  for (const [categoryKey, categoryInfo] of sortedCategories) {
+    const stylesInCategory = Object.entries(stylePresets)
+      .filter(([key, style]) => style.category === categoryKey);
     
-  const sdModels = defaultProvider.models
-    .filter(m => m.category === 'stable-diffusion')
-    .map(m => `<option value="${m.id}">${m.name}</option>`)
-    .join('\n');
-  
-  const styleOptions = Object.entries(CONFIG.STYLE_PRESETS).map(([key, value]) => 
-    `<option value="${key}">${value.name}</option>`
-  ).join('\n');
-  
-  const sizeOptions = Object.entries(CONFIG.PRESET_SIZES).map(([key, value]) => 
-    `<option value="${key}">${value.name} (${value.width}x${value.height})</option>`
-  ).join('\n');
+    if (stylesInCategory.length > 0) {
+      styleOptionsHTML += `<optgroup label="${categoryInfo.icon} ${categoryInfo.name}">`;
+      
+      for (const [styleKey, styleConfig] of stylesInCategory) {
+        const selected = styleKey === 'none' ? ' selected' : '';
+        styleOptionsHTML += `<option value="${styleKey}"${selected}>${styleConfig.icon} ${styleConfig.name}</option>`;
+      }
+      
+      styleOptionsHTML += '</optgroup>';
+    }
+  }
   
   const html = `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${CONFIG.PROJECT_NAME} v${CONFIG.PROJECT_VERSION}</title>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { 
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial; 
-        background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%); 
-        color: #fff; 
-        padding: 20px;
-        min-height: 100vh;
-      }
-      .container { max-width: 1400px; margin: 0 auto; }
-      
-      h1 { 
-        color: #f59e0b; 
-        text-align: center; 
-        margin-bottom: 10px;
-        font-size: 36px;
-        font-weight: 800;
-        text-shadow: 0 0 30px rgba(245, 158, 11, 0.6);
-      }
-      .badge { 
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        padding: 6px 14px; 
-        border-radius: 20px; 
-        font-size: 14px;
-        margin-left: 10px;
-      }
-      .subtitle { 
-        text-align: center; 
-        color: #9ca3af; 
-        margin-bottom: 20px; 
-        font-size: 15px; 
-      }
-      
-      .tabs {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-      }
-      .tab {
-        padding: 12px 24px;
-        background: transparent;
-        border: none;
-        color: #9ca3af;
-        cursor: pointer;
-        font-size: 15px;
-        font-weight: 600;
-        border-bottom: 3px solid transparent;
-        transition: all 0.3s;
-      }
-      .tab:hover { color: #f59e0b; }
-      .tab.active {
-        color: #f59e0b;
-        border-bottom-color: #f59e0b;
-      }
-      
-      .tab-content {
-        display: none;
-      }
-      .tab-content.active {
-        display: block;
-      }
-      
-      .info-card {
-        background: rgba(59, 130, 246, 0.1);
-        border: 1px solid #3b82f6;
-        padding: 16px;
-        border-radius: 12px;
-        margin-bottom: 20px;
-      }
-      .info-card h4 {
-        color: #60a5fa;
-        margin-bottom: 10px;
-        font-size: 16px;
-      }
-      .info-card p {
-        color: #93c5fd;
-        font-size: 13px;
-        line-height: 1.6;
-      }
-      
-      .grid { 
-        display: grid; 
-        grid-template-columns: 1fr 1fr; 
-        gap: 20px; 
-        margin: 20px 0;
-      }
-      @media (max-width: 768px) {
-        .grid { grid-template-columns: 1fr; }
-      }
-      
-      .box { 
-        background: rgba(26, 26, 26, 0.95); 
-        padding: 24px; 
-        border-radius: 16px; 
-        border: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      h3 { 
-        color: #f59e0b; 
-        margin-bottom: 18px; 
-        font-size: 18px;
-        font-weight: 700;
-      }
-      
-      label { 
-        display: block; 
-        margin: 16px 0 8px 0; 
-        color: #e5e7eb; 
-        font-weight: 600;
-        font-size: 13px;
-      }
-      select, textarea, input { 
-        width: 100%; 
-        padding: 12px; 
-        margin: 0; 
-        background: #2a2a2a; 
-        border: 1px solid #444; 
-        color: #fff; 
-        border-radius: 10px;
-        font-size: 14px;
-        font-family: inherit;
-        transition: all 0.3s;
-      }
-      select:focus, textarea:focus, input:focus {
-        outline: none;
-        border-color: #f59e0b;
-        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
-      }
-      textarea { resize: vertical; min-height: 90px; }
-      input[type="range"] { padding: 0; height: 6px; }
-      
-      .range-value {
-        display: inline-block;
-        background: #3a3a3a;
-        padding: 4px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        margin-left: 10px;
-        color: #f59e0b;
-        font-weight: 600;
-      }
-      
-      .checkbox-group {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin: 12px 0;
-      }
-      .checkbox-group input[type="checkbox"] {
-        width: auto;
-        margin: 0;
-      }
-      
-      .nsfw-warning {
-        background: rgba(239, 68, 68, 0.2);
-        border: 1px solid #ef4444;
-        padding: 12px;
-        border-radius: 8px;
-        margin-top: 10px;
-        font-size: 12px;
-        color: #fca5a5;
-      }
-      
-      button { 
-        width: 100%; 
-        padding: 18px; 
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        color: #000; 
-        cursor: pointer; 
-        font-weight: 800; 
-        border: none;
-        border-radius: 12px;
-        font-size: 17px;
-        margin-top: 24px;
-        transition: all 0.3s;
-      }
-      button:hover { 
-        transform: translateY(-3px);
-        box-shadow: 0 8px 30px rgba(245, 158, 11, 0.6);
-      }
-      button:disabled { 
-        background: #3a3a3a; 
-        color: #666; 
-        cursor: not-allowed;
-        transform: none;
-      }
-      
-      .generating-container {
-        text-align: center;
-        padding: 60px 20px;
-        background: rgba(26, 26, 26, 0.95);
-        border-radius: 16px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      
-      .generating-icon {
-        width: 120px;
-        height: 120px;
-        margin: 0 auto 30px;
-        position: relative;
-      }
-      
-      .generating-spinner {
-        width: 120px;
-        height: 120px;
-        border: 6px solid rgba(245, 158, 11, 0.1);
-        border-radius: 50%;
-        border-top-color: #f59e0b;
-        border-right-color: #f59e0b;
-        animation: spin 1.5s linear infinite;
-      }
-      
-      .generating-image {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 48px;
-        animation: pulse 2s ease-in-out infinite;
-      }
-      
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-      
-      @keyframes pulse {
-        0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        50% { opacity: 0.6; transform: translate(-50%, -50%) scale(0.9); }
-      }
-      
-      .generating-title {
-        font-size: 24px;
-        font-weight: 700;
-        color: #f59e0b;
-        margin-bottom: 16px;
-        animation: fadeIn 0.5s ease-in;
-      }
-      
-      .generating-subtitle {
-        font-size: 16px;
-        color: #9ca3af;
-        margin-bottom: 30px;
-        animation: fadeIn 0.5s ease-in 0.2s backwards;
-      }
-      
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      
-      .progress-container {
-        width: 100%;
-        max-width: 500px;
-        margin: 0 auto 20px;
-        animation: fadeIn 0.5s ease-in 0.4s backwards;
-      }
-      
-      .progress-bar-bg {
-        width: 100%;
-        height: 8px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        overflow: hidden;
-        position: relative;
-      }
-      
-      .progress-bar {
-        height: 100%;
-        background: linear-gradient(90deg, #f59e0b 0%, #eab308 50%, #f59e0b 100%);
-        background-size: 200% 100%;
-        border-radius: 10px;
-        transition: width 0.3s ease;
-        animation: shimmer 2s linear infinite;
-        box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
-      }
-      
-      @keyframes shimmer {
-        0% { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
-      }
-      
-      .progress-text {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 10px;
-        font-size: 13px;
-        color: #9ca3af;
-      }
-      
-      .generating-info {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 16px;
-        max-width: 600px;
-        margin: 30px auto 0;
-        animation: fadeIn 0.5s ease-in 0.6s backwards;
-      }
-      
-      .info-card-small {
-        background: rgba(255, 255, 255, 0.05);
-        padding: 16px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      
-      .info-card-label {
-        font-size: 11px;
-        color: #6b7280;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
-      }
-      
-      .info-card-value {
-        font-size: 16px;
-        font-weight: 700;
-        color: #f59e0b;
-      }
-      
-      .status-messages {
-        max-width: 500px;
-        margin: 30px auto 0;
-        text-align: left;
-        animation: fadeIn 0.5s ease-in 0.8s backwards;
-      }
-      
-      .status-message {
-        padding: 12px 16px;
-        background: rgba(59, 130, 246, 0.1);
-        border-left: 3px solid #3b82f6;
-        border-radius: 6px;
-        margin-bottom: 10px;
-        font-size: 13px;
-        color: #93c5fd;
-        animation: slideIn 0.3s ease-out;
-      }
-      
-      @keyframes slideIn {
-        from { opacity: 0; transform: translateX(-20px); }
-        to { opacity: 1; transform: translateX(0); }
-      }
-      
-      .status-message.success {
-        background: rgba(16, 185, 129, 0.1);
-        border-color: #10b981;
-        color: #6ee7b7;
-      }
-      
-      .cancel-button {
-        margin-top: 30px;
-        padding: 12px 32px;
-        background: rgba(239, 68, 68, 0.2);
-        border: 1px solid #ef4444;
-        color: #fca5a5;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 600;
-        transition: all 0.3s;
-        animation: fadeIn 0.5s ease-in 1s backwards;
-      }
-      
-      .cancel-button:hover {
-        background: rgba(239, 68, 68, 0.3);
-        transform: translateY(-2px);
-      }
-      
-      .preview-placeholder {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
-        margin-top: 30px;
-        animation: fadeIn 0.5s ease-in 1.2s backwards;
-      }
-      
-      .placeholder-item {
-        aspect-ratio: 1;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
-        border-radius: 12px;
-        border: 2px dashed rgba(245, 158, 11, 0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 48px;
-        animation: placeholderPulse 2s ease-in-out infinite;
-      }
-      
-      @keyframes placeholderPulse {
-        0%, 100% { opacity: 0.3; border-color: rgba(245, 158, 11, 0.3); }
-        50% { opacity: 0.6; border-color: rgba(245, 158, 11, 0.6); }
-      }
-      
-      .result-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        gap: 20px;
-        margin-top: 24px;
-      }
-      .result img { 
-        width: 100%; 
-        border-radius: 16px; 
-        cursor: pointer; 
-        transition: transform 0.3s;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-      }
-      .result img:hover { transform: scale(1.05); }
-      
-      .history-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 16px;
-        margin-top: 20px;
-      }
-      .history-item {
-        background: rgba(26, 26, 26, 0.95);
-        border-radius: 12px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        transition: all 0.3s;
-        cursor: pointer;
-      }
-      .history-item:hover {
-        border-color: #f59e0b;
-        transform: translateY(-2px);
-      }
-      .history-thumbnail {
-        width: 100%;
-        height: 200px;
-        object-fit: cover;
-      }
-      .history-info {
-        padding: 12px;
-      }
-      .history-prompt {
-        font-size: 13px;
-        color: #e5e7eb;
-        margin-bottom: 8px;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
-      .history-meta {
-        font-size: 11px;
-        color: #9ca3af;
-        display: flex;
-        justify-content: space-between;
-      }
-      .history-actions {
-        display: flex;
-        gap: 8px;
-        padding: 0 12px 12px 12px;
-      }
-      .history-btn {
-        flex: 1;
-        padding: 8px;
-        background: rgba(255, 255, 255, 0.1);
-        border: none;
-        color: #fff;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 12px;
-        transition: all 0.2s;
-      }
-      .history-btn:hover {
-        background: rgba(245, 158, 11, 0.3);
-      }
-      
-      .success, .error { 
-        padding: 20px; 
-        border-radius: 12px; 
-        margin: 24px 0; 
-        border-left: 4px solid;
-      }
-      .success { 
-        background: rgba(6, 78, 59, 0.3); 
-        border-color: #10b981;
-        color: #6ee7b7;
-      }
-      .error {
-        background: rgba(127, 29, 29, 0.3);
-        border-color: #dc2626;
-        color: #fecaca;
-      }
-      
-      .help-text {
-        font-size: 11px;
-        color: #9ca3af;
-        margin-top: 6px;
-      }
-      
-      .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-        color: #6b7280;
-      }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flux AI Pro v${CONFIG.PROJECT_VERSION} - ${stylesCount} 種風格</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:linear-gradient(135deg,#0a0a0a 0%,#1a1a2e 100%);color:#fff;min-height:100vh}
+.container{max-width:100%;margin:0;padding:0;height:100vh;display:flex;flex-direction:column}
+.top-nav{background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.1);padding:15px 25px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.nav-left{display:flex;align-items:center;gap:20px}
+.logo{color:#f59e0b;font-size:24px;font-weight:800;text-shadow:0 0 20px rgba(245,158,11,0.6);display:flex;align-items:center;gap:10px}
+.badge{background:linear-gradient(135deg,#10b981 0%,#059669 100%);padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-new{background:linear-gradient(135deg,#ec4899 0%,#db2777 100%);padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700}
+.badge-styles{background:linear-gradient(135deg,#8b5cf6 0%,#7c3aed 100%);padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700}
+.nav-menu{display:flex;gap:10px}
+.nav-btn{padding:8px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#9ca3af;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.3s;display:flex;align-items:center;gap:6px}
+.nav-btn:hover{border-color:#f59e0b;color:#fff}
+.nav-btn.active{background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);color:#fff;border-color:#f59e0b}
+.api-status{padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:rgba(16,185,129,0.1);border:1px solid #10b981}
+.api-endpoint{font-size:10px;color:#6b7280;margin-top:4px}
+.main-content{flex:1;display:flex;overflow:hidden}
+.left-panel{width:320px;background:rgba(255,255,255,0.03);border-right:1px solid rgba(255,255,255,0.1);overflow-y:auto;padding:20px;flex-shrink:0}
+.center-panel{flex:1;padding:20px;overflow-y:auto}
+.right-panel{width:380px;background:rgba(255,255,255,0.03);border-left:1px solid rgba(255,255,255,0.1);overflow-y:auto;padding:20px;flex-shrink:0}
+@media(max-width:1400px){.left-panel{width:280px}.right-panel{width:320px}}
+@media(max-width:1024px){.main-content{flex-direction:column}.left-panel,.right-panel{width:100%;border:none;border-bottom:1px solid rgba(255,255,255,0.1)}}
+.page{display:none}
+.page.active{display:block}
+.page.active .main-content{display:flex}
+.section-title{font-size:16px;font-weight:700;color:#f59e0b;margin-bottom:15px;display:flex;align-items:center;gap:8px}
+.form-group{margin-bottom:16px}
+label{display:block;margin-bottom:6px;font-weight:600;font-size:13px;color:#e5e7eb}
+input,select,textarea{width:100%;padding:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;font-size:13px;transition:all 0.3s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,0.1)}
+textarea{min-height:120px;resize:vertical;font-family:inherit;line-height:1.6}
+select{cursor:pointer}
+.input-hint{font-size:11px;color:#6b7280;margin-top:4px}
+.style-hint{font-size:11px;color:#8b5cf6;margin-top:4px;font-weight:600}
+.btn{padding:12px 24px;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.3s;display:inline-flex;align-items:center;gap:8px;justify-content:center;width:100%}
+.btn-primary{background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);color:#fff;box-shadow:0 4px 15px rgba(245,158,11,0.3)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(245,158,11,0.4)}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.btn-secondary{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2)}
+.btn-secondary:hover{background:rgba(255,255,255,0.15)}
+.btn-danger{background:linear-gradient(135deg,#ef4444 0%,#dc2626 100%);color:#fff}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
+.gallery-item{background:rgba(0,0,0,0.4);border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);transition:all 0.3s}
+.gallery-item:hover{transform:translateY(-5px);box-shadow:0 10px 30px rgba(245,158,11,0.3)}
+.gallery-item img{width:100%;height:280px;object-fit:cover;display:block;cursor:pointer}
+.gallery-info{padding:15px}
+.gallery-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:5px}
+.model-badge{background:rgba(245,158,11,0.2);color:#f59e0b;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600}
+.seed-badge{background:rgba(16,185,129,0.2);color:#10b981;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600}
+.style-badge{background:rgba(139,92,246,0.2);color:#8b5cf6;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600}
+.time-badge{background:rgba(59,130,246,0.2);color:#3b82f6;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600}
+.gallery-actions{display:flex;gap:8px;margin-top:10px}
+.action-btn{padding:6px 12px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:12px;color:#fff;cursor:pointer;transition:all 0.3s;display:inline-flex;align-items:center;gap:5px;flex:1;justify-content:center}
+.action-btn:hover{background:rgba(255,255,255,0.2);border-color:#f59e0b}
+.action-btn.delete{border-color:rgba(239,68,68,0.5)}
+.action-btn.delete:hover{background:rgba(239,68,68,0.2);border-color:#ef4444}
+.prompt-display{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:15px;margin-bottom:20px}
+.prompt-display .label{font-size:12px;color:#9ca3af;margin-bottom:6px;font-weight:600}
+.prompt-display .content{color:#e5e7eb;font-size:13px;line-height:1.6;word-break:break-word}
+.loading{text-align:center;padding:60px 20px;color:#9ca3af}
+.spinner{border:3px solid rgba(255,255,255,0.1);border-top:3px solid #f59e0b;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 15px}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:60px 20px;color:#9ca3af}
+.empty-state svg{margin:0 auto 20px;opacity:0.5}
+.alert{padding:12px 15px;border-radius:8px;margin-bottom:15px;border-left:4px solid;font-size:13px}
+.alert-success{background:rgba(16,185,129,0.1);border-color:#10b981;color:#10b981}
+.alert-error{background:rgba(239,68,68,0.1);border-color:#ef4444;color:#ef4444}
+.alert-warning{background:rgba(245,158,11,0.1);border-color:#f59e0b;color:#f59e0b}
+.alert-info{background:rgba(139,92,246,0.1);border-color:#8b5cf6;color:#8b5cf6}
+.advanced-toggle{cursor:pointer;color:#3b82f6;font-size:13px;margin-bottom:12px;display:inline-block}
+.advanced-toggle:hover{text-decoration:underline}
+.advanced-section{display:none;animation:fadeIn 0.3s}
+.advanced-section.show{display:block}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.9);align-items:center;justify-content:center}
+.modal.show{display:flex}
+.modal-content{max-width:90%;max-height:90%;position:relative}
+.modal-content img{max-width:100%;max-height:90vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.modal-close{position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.1);backdrop-filter:blur(10px);border:none;color:#fff;font-size:32px;width:48px;height:48px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.3s}
+.modal-close:hover{background:rgba(255,255,255,0.2);transform:rotate(90deg)}
+.history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding:20px;background:rgba(255,255,255,0.03);border-radius:12px}
+.history-stats{display:flex;gap:20px;font-size:14px}
+.stat-item{display:flex;flex-direction:column;gap:4px}
+.stat-item .label{color:#9ca3af;font-size:12px}
+.stat-item .value{color:#f59e0b;font-size:20px;font-weight:700}
+.history-actions{display:flex;gap:10px}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:rgba(255,255,255,0.05)}
+::-webkit-scrollbar-thumb{background:rgba(245,158,11,0.3);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(245,158,11,0.5)}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎨 AI Image Generator <span class="badge">v${CONFIG.PROJECT_VERSION}</span></h1>
-        <div class="subtitle">完整平台 - Flux & SD3 系列 + 智能優化 + 自動高清</div>
-        
-        <div class="tabs">
-            <button class="tab active" onclick="switchTab(event, 'generate')">🎨 生成</button>
-            <button class="tab" onclick="switchTab(event, 'history')">📜 歷史 (<span id="historyCount">0</span>)</button>
-        </div>
-        
-        <div id="generate-tab" class="tab-content active">
-            <div class="info-card">
-                <h4>🚀 v8.5.0 新功能</h4>
-                <p>
-                    <strong>✨ 自動高清:</strong> 智能添加高清質量提示詞 + 自動尺寸優化<br>
-                    <strong>🎯 智能優化:</strong> 根據模型和尺寸自動調整步數<br>
-                    <strong>🎨 完整功能:</strong> 17個模型 | 12種風格 | NSFW支持 | 完全免費
-                </p>
-            </div>
-            
-            <div class="grid">
-                <div class="box">
-                    <h3>基礎設置</h3>
-                    
-                    <label>模型:</label>
-                    <select id="model">
-                        <optgroup label="✅ Flux 標準">
-                            ${fluxModels}
-                        </optgroup>
-                        <optgroup label="🧪 Flux 高級">
-                            ${fluxAdvanced}
-                        </optgroup>
-                        <optgroup label="🧪 SD3 系列">
-                            ${sdModels}
-                        </optgroup>
-                    </select>
-                    
-                    <label>風格:</label>
-                    <select id="style">
-                        ${styleOptions}
-                    </select>
-                    
-                    <label>提示詞:</label>
-                    <textarea id="prompt" placeholder="描述你想生成的圖片..."></textarea>
-                    
-                    <label>負面提示詞:</label>
-                    <textarea id="negativePrompt" rows="2" placeholder="不想要的內容..."></textarea>
-                    
-                    <label>數量 (1-4):</label>
-                    <input type="number" id="num" min="1" max="4" value="1">
-                </div>
-                
-                <div class="box">
-                    <h3>進階參數</h3>
-                    
-                    <label>尺寸:</label>
-                    <select id="sizePreset" onchange="updateSize()">${sizeOptions}</select>
-                    
-                    <div id="customSize" style="display:none;">
-                        <label>寬度:</label>
-                        <input type="number" id="width" min="256" max="2048" step="64" value="1024">
-                        <label>高度:</label>
-                        <input type="number" id="height" min="256" max="2048" step="64" value="1024">
-                    </div>
-                    
-                    <label>Seed:</label>
-                    <input type="number" id="seed" value="-1" min="-1">
-                    
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="autoHD" checked onchange="toggleAutoHD()">
-                        <label for="autoHD">🎨 自動高清 (推薦)</label>
-                    </div>
-                    <div class="help-text" id="hdHelp" style="color:#10b981">✅ 自動添加高清提示詞 + 尺寸優化</div>
-                    
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="autoOptimize" checked onchange="toggleAutoOptimize()">
-                        <label for="autoOptimize">🎯 智能優化 (推薦)</label>
-                    </div>
-                    <div class="help-text" id="optimizeHelp" style="color:#10b981">✅ 自動選擇最佳參數</div>
-                    
-                    <div id="manualParams" style="opacity: 0.5; pointer-events: none;">
-                        <label>步數: <span class="range-value" id="stepsValue">20</span></label>
-                        <input type="range" id="steps" min="1" max="50" value="20" oninput="document.getElementById('stepsValue').innerText=this.value">
-                        
-                        <label>引導: <span class="range-value" id="guidanceValue">7.5</span></label>
-                        <input type="range" id="guidance" min="1" max="20" step="0.5" value="7.5" oninput="document.getElementById('guidanceValue').innerText=this.value">
-                    </div>
-                    
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="enhance">
-                        <label for="enhance">AI 優化</label>
-                    </div>
-                    
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="nologo" checked>
-                        <label for="nologo">移除水印</label>
-                    </div>
-                    
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="private" checked>
-                        <label for="private">私密模式</label>
-                    </div>
-                    
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="nsfw" onchange="toggleNSFWWarning()">
-                        <label for="nsfw">🔞 成人內容</label>
-                    </div>
-                    
-                    <div id="nsfwWarning" class="nsfw-warning" style="display:none;">
-                        <strong>⚠️ NSFW 警告</strong>
-                        <p style="margin-top:6px;">請確保您已年滿 18 歲</p>
-                    </div>
-                </div>
-            </div>
-            
-            <button onclick="generate()">🚀 開始生成</button>
-            
-            <div id="result"></div>
-        </div>
-        
-        <div id="history-tab" class="tab-content">
-            <div class="box">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="margin: 0;">歷史記錄</h3>
-                    <div style="display: flex; gap: 10px;">
-                        <button onclick="exportHistory()" style="width: auto; padding: 10px 20px; margin: 0; font-size: 14px;">📥 導出</button>
-                        <button onclick="clearHistory()" style="width: auto; padding: 10px 20px; margin: 0; font-size: 14px; background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);">🗑️ 清空</button>
-                    </div>
-                </div>
-                <div id="historyContainer"></div>
-            </div>
-        </div>
-    </div>
+<div class="container">
+<div class="top-nav">
+<div class="nav-left">
+<div class="logo">
+🎨 Flux AI Pro
+<span class="badge">v${CONFIG.PROJECT_VERSION}</span>
+<span class="badge-new">NEW API</span>
+<span class="badge-styles">${stylesCount} 風格</span>
+</div>
+<div>
+<div class="api-status">${authStatus}</div>
+<div class="api-endpoint">📡 ${apiEndpoint}</div>
+</div>
+</div>
+<div class="nav-menu">
+<button class="nav-btn active" data-page="generate"><span>🎨</span> 生成圖像</button>
+<button class="nav-btn" data-page="history"><span>📚</span> 歷史記錄 <span id="historyCount" style="background:rgba(245,158,11,0.2);padding:2px 8px;border-radius:10px;font-size:11px">0</span></button>
+</div>
+</div>
 
-    <script>
-        const SIZES = ${JSON.stringify(CONFIG.PRESET_SIZES)};
-        const API_URL = '${origin}/v1/images/generations';
-        const STORAGE_KEY = '${CONFIG.HISTORY.STORAGE_KEY}';
-        const MAX_HISTORY = ${CONFIG.HISTORY.MAX_ITEMS};
-        
-        let generationAborted = false;
-        let currentAbortController = null;
-        
-        function toggleNSFWWarning() {
-            const checkbox = document.getElementById('nsfw');
-            const warning = document.getElementById('nsfwWarning');
-            warning.style.display = checkbox.checked ? 'block' : 'none';
-        }
-        
-        function toggleAutoHD() {
-            const checked = document.getElementById('autoHD').checked;
-            const help = document.getElementById('hdHelp');
-            
-            if (checked) {
-                help.innerText = '✅ 自動添加高清提示詞 + 尺寸優化';
-                help.style.color = '#10b981';
-            } else {
-                help.innerText = '⚠️ 已關閉 - 使用原始參數';
-                help.style.color = '#9ca3af';
-            }
-        }
-        
-        function toggleAutoOptimize() {
-            const checked = document.getElementById('autoOptimize').checked;
-            const manualParams = document.getElementById('manualParams');
-            const help = document.getElementById('optimizeHelp');
-            
-            if (checked) {
-                manualParams.style.opacity = '0.5';
-                manualParams.style.pointerEvents = 'none';
-                help.innerText = '✅ 自動選擇最佳參數';
-                help.style.color = '#10b981';
-            } else {
-                manualParams.style.opacity = '1';
-                manualParams.style.pointerEvents = 'auto';
-                help.innerText = '⚠️ 手動模式';
-                help.style.color = '#fbbf24';
-            }
-        }
-        
-        function getHistory() {
-            try {
-                const history = localStorage.getItem(STORAGE_KEY);
-                return history ? JSON.parse(history) : [];
-            } catch (e) {
-                return [];
-            }
-        }
-        
-        function saveHistory(item) {
-            try {
-                let history = getHistory();
-                history.unshift({
-                    ...item,
-                    id: Date.now(),
-                    timestamp: new Date().toISOString()
-                });
-                
-                if (history.length > MAX_HISTORY) {
-                    history = history.slice(0, MAX_HISTORY);
-                }
-                
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-                updateHistoryCount();
-            } catch (e) {
-                console.error('Save failed:', e);
-            }
-        }
-        
-        function deleteHistoryItem(id) {
-            try {
-                let history = getHistory();
-                history = history.filter(item => item.id !== id);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-                loadHistory();
-                updateHistoryCount();
-            } catch (e) {
-                console.error('Delete failed:', e);
-            }
-        }
-        
-        function clearHistory() {
-            if (confirm('確定清空所有歷史?')) {
-                localStorage.removeItem(STORAGE_KEY);
-                loadHistory();
-                updateHistoryCount();
-            }
-        }
-        
-        function exportHistory() {
-            const history = getHistory();
-            const dataStr = JSON.stringify(history, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = \`history-\${new Date().toISOString().split('T')[0]}.json\`;
-            link.click();
-            URL.revokeObjectURL(url);
-        }
-        
-        function loadHistory() {
-            const history = getHistory();
-            const container = document.getElementById('historyContainer');
-            
-            if (history.length === 0) {
-                container.innerHTML = '<div class="empty-state"><p style="font-size:18px;">📭</p><p>還沒有記錄</p></div>';
-                return;
-            }
-            
-            container.innerHTML = '<div class="history-grid">' + history.map(item => \`
-                <div class="history-item">
-                    <img src="\${item.url}" class="history-thumbnail" onclick="window.open('\${item.url}')" alt="Generated">
-                    <div class="history-info">
-                        <div class="history-prompt">\${item.prompt}</div>
-                        <div class="history-meta">
-                            <span>\${item.model}</span>
-                            <span>\${new Date(item.timestamp).toLocaleDateString()}</span>
-                        </div>
-                    </div>
-                    <div class="history-actions">
-                        <button class="history-btn" onclick='regenFromHistory(\${JSON.stringify(item).replace(/'/g, "&#39;")})'>🔄</button>
-                        <button class="history-btn" onclick="deleteHistoryItem(\${item.id})">🗑️</button>
-                    </div>
-                </div>
-            \`).join('') + '</div>';
-        }
-        
-        function regenFromHistory(item) {
-            switchTab({target: document.querySelectorAll('.tab')[0]}, 'generate');
-            document.getElementById('model').value = item.model || 'flux';
-            document.getElementById('style').value = item.style || 'none';
-            document.getElementById('prompt').value = item.prompt || '';
-            document.getElementById('negativePrompt').value = item.negativePrompt || '';
-            document.getElementById('num').value = item.numOutputs || 1;
-            document.getElementById('width').value = item.width || 1024;
-            document.getElementById('height').value = item.height || 1024;
-            document.getElementById('seed').value = item.seed || -1;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-        
-        function updateHistoryCount() {
-            document.getElementById('historyCount').innerText = getHistory().length;
-        }
-        
-        function switchTab(event, tabName) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            event.target.classList.add('active');
-            document.getElementById(tabName + '-tab').classList.add('active');
-            
-            if (tabName === 'history') {
-                loadHistory();
-            }
-        }
-        
-        function updateSize() {
-            const preset = document.getElementById('sizePreset').value;
-            const customDiv = document.getElementById('customSize');
-            
-            if (preset === 'custom') {
-                customDiv.style.display = 'block';
-            } else {
-                customDiv.style.display = 'none';
-                const size = SIZES[preset];
-                document.getElementById('width').value = size.width;
-                document.getElementById('height').value = size.height;
-            }
-        }
-        
-        function renderGeneratingUI(config) {
-            const { model, numOutputs, width, height, steps } = config;
-            
-            return \`
-                <div class="generating-container">
-                    <div class="generating-icon">
-                        <div class="generating-spinner"></div>
-                        <div class="generating-image">🎨</div>
-                    </div>
-                    
-                    <div class="generating-title">正在生成圖片...</div>
-                    <div class="generating-subtitle">AI 正在創作,請稍候</div>
-                    
-                    <div class="progress-container">
-                        <div class="progress-bar-bg">
-                            <div class="progress-bar" id="progressBar" style="width: 0%"></div>
-                        </div>
-                        <div class="progress-text">
-                            <span id="progressPercent">0%</span>
-                            <span id="progressTime">預計 <span id="estimatedTime">--</span> 秒</span>
-                        </div>
-                    </div>
-                    
-                    <div class="generating-info">
-                        <div class="info-card-small">
-                            <div class="info-card-label">模型</div>
-                            <div class="info-card-value">\${model}</div>
-                        </div>
-                        <div class="info-card-small">
-                            <div class="info-card-label">尺寸</div>
-                            <div class="info-card-value">\${width}x\${height}</div>
-                        </div>
-                        <div class="info-card-small">
-                            <div class="info-card-label">數量</div>
-                            <div class="info-card-value">\${numOutputs} 張</div>
-                        </div>
-                        <div class="info-card-small">
-                            <div class="info-card-label">步數</div>
-                            <div class="info-card-value">\${steps || 'Auto'}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="status-messages" id="statusMessages">
-                        <div class="status-message">🔄 初始化...</div>
-                    </div>
-                    
-                    <div class="preview-placeholder">
-                        \${Array(numOutputs).fill(0).map(() => \`<div class="placeholder-item">🖼️</div>\`).join('')}
-                    </div>
-                    
-                    <button class="cancel-button" onclick="cancelGeneration()">❌ 取消</button>
-                </div>
-            \`;
-        }
-        
-        function addStatusMessage(message, type = 'info') {
-            const container = document.getElementById('statusMessages');
-            if (!container) return;
-            
-            const messageEl = document.createElement('div');
-            messageEl.className = \`status-message \${type}\`;
-            messageEl.textContent = message;
-            
-            if (container.children.length >= 5) {
-                container.removeChild(container.firstChild);
-            }
-            
-            container.appendChild(messageEl);
-        }
-        
-        function updateProgress(percent, elapsedSeconds) {
-            const progressBar = document.getElementById('progressBar');
-            const progressPercent = document.getElementById('progressPercent');
-            const estimatedTimeEl = document.getElementById('estimatedTime');
-            
-            if (progressBar) {
-                progressBar.style.width = percent + '%';
-            }
-            if (progressPercent) {
-                progressPercent.textContent = Math.round(percent) + '%';
-            }
-            if (estimatedTimeEl && elapsedSeconds) {
-                const estimated = Math.max(0, Math.round((100 - percent) / percent * elapsedSeconds));
-                estimatedTimeEl.textContent = estimated;
-            }
-        }
-        
-        function simulateProgress() {
-            let progress = 0;
-            const startTime = Date.now();
-            
-            const interval = setInterval(() => {
-                if (generationAborted) {
-                    clearInterval(interval);
-                    return;
-                }
-                
-                const elapsed = (Date.now() - startTime) / 1000;
-                
-                if (progress < 60) {
-                    progress += Math.random() * 3 + 2;
-                } else if (progress < 90) {
-                    progress += Math.random() * 1.5 + 0.5;
-                } else {
-                    progress += Math.random() * 0.5;
-                }
-                
-                progress = Math.min(progress, 95);
-                
-                updateProgress(progress, elapsed);
-                
-                if (progress > 20 && progress < 25) {
-                    addStatusMessage('🎨 處理提示詞...');
-                } else if (progress > 40 && progress < 45) {
-                    addStatusMessage('🖼️ 生成基礎結構...');
-                } else if (progress > 60 && progress < 65) {
-                    addStatusMessage('✨ 細化細節...');
-                } else if (progress > 80 && progress < 85) {
-                    addStatusMessage('🎯 最終優化...');
-                }
-            }, 500);
-            
-            return interval;
-        }
-        
-        function cancelGeneration() {
-            if (confirm('確定取消?')) {
-                generationAborted = true;
-                if (currentAbortController) {
-                    currentAbortController.abort();
-                }
-                document.getElementById('result').innerHTML = \`
-                    <div class="error">
-                        <strong>❌ 已取消</strong>
-                        <p style="margin-top: 12px;">已取消生成</p>
-                    </div>
-                \`;
-            }
-        }
-        
-        async function generate() {
-            const model = document.getElementById('model').value;
-            const style = document.getElementById('style').value;
-            const prompt = document.getElementById('prompt').value.trim();
-            const negativePrompt = document.getElementById('negativePrompt').value.trim();
-            const num = parseInt(document.getElementById('num').value) || 1;
-            const width = parseInt(document.getElementById('width').value);
-            const height = parseInt(document.getElementById('height').value);
-            const seed = parseInt(document.getElementById('seed').value);
-            const autoHD = document.getElementById('autoHD').checked;
-            const autoOptimize = document.getElementById('autoOptimize').checked;
-            const guidance = autoOptimize ? null : parseFloat(document.getElementById('guidance').value);
-            const steps = autoOptimize ? null : parseInt(document.getElementById('steps').value);
-            const enhance = document.getElementById('enhance').checked;
-            const nologo = document.getElementById('nologo').checked;
-            const privateMode = document.getElementById('private').checked;
-            const nsfw = document.getElementById('nsfw').checked;
-            
-            const resultDiv = document.getElementById('result');
-            
-            if (!prompt) {
-                resultDiv.innerHTML = '<div class="error">⚠️ 請輸入提示詞</div>';
-                return;
-            }
-            
-            if (nsfw && !confirm('確認您已年滿18歲?')) {
-                return;
-            }
-            
-            generationAborted = false;
-            currentAbortController = new AbortController();
-            
-            resultDiv.innerHTML = renderGeneratingUI({
-                model, numOutputs: num, width, height, 
-                steps: steps || 'Auto'
-            });
-            
-            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            
-            const startTime = Date.now();
-            const progressInterval = simulateProgress();
-            
-            setTimeout(() => addStatusMessage('📡 連接服務器...'), 500);
-            setTimeout(() => addStatusMessage('🔐 驗證參數...', 'success'), 1000);
-            setTimeout(() => addStatusMessage('🚀 開始生成...', 'success'), 1500);
-            
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        model, style, prompt, negative_prompt: negativePrompt, n: num,
-                        width, height, seed, 
-                        guidance_scale: guidance,
-                        steps: steps,
-                        auto_optimize: autoOptimize,
-                        auto_hd: autoHD,
-                        enhance, nologo, private: privateMode, nsfw
-                    }),
-                    signal: currentAbortController.signal
-                });
-                
-                clearInterval(progressInterval);
-                
-                if (generationAborted) return;
-                
-                updateProgress(100, (Date.now() - startTime) / 1000);
-                addStatusMessage('✅ 完成!', 'success');
-                
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error.message);
-                }
-                
-                if (!data.data || data.data.length === 0) {
-                    throw new Error('沒有生成圖片');
-                }
-                
-                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-                
-                data.data.forEach(item => {
-                    saveHistory({
-                        url: item.url,
-                        prompt, negativePrompt, model: item.model, style,
-                        numOutputs: num, width: item.width, height: item.height, seed,
-                        guidance: item.guidance, steps: item.steps, 
-                        enhance, nologo, privateMode, nsfw
-                    });
-                });
-                
-                setTimeout(() => {
-                    const images = data.data.map((item, idx) => 
-                        \`<img src="\${item.url}" onclick="window.open(this.src)" alt="\${idx + 1}" loading="lazy" style="animation: fadeIn 0.5s ease-in \${idx * 0.1}s backwards;">\`
-                    ).join('');
-                    
-                    const optimizedNote = data.data[0].auto_optimized ? 
-                        \`<p style="color: #10b981; font-size: 12px; margin-top: 4px;">🎯 步數: \${data.data[0].steps} (智能優化)</p>\` : '';
-                    
-                    const hdNote = data.data[0].hd_optimized ? 
-                        \`<p style="color: #a78bfa; font-size: 12px; margin-top: 4px;">🎨 高清優化: \${data.data[0].width}x\${data.data[0].height} | 質量增強</p>\` : '';
-                    
-                    resultDiv.innerHTML = \`
-                        <div class="success" style="animation: slideIn 0.5s ease-out;">
-                            <strong style="font-size: 20px;">🎉 成功!</strong>
-                            <p style="margin-top: 12px; font-size: 14px;">
-                                <strong>模型:</strong> \${data.data[0].model} | 
-                                <strong>尺寸:</strong> \${data.data[0].width}x\${data.data[0].height}<br>
-                                <strong>耗時:</strong> \${elapsed}秒 | 
-                                <strong>費用:</strong> <span style="color:#10b981">免費</span>
-                            </p>
-                            \${optimizedNote}
-                            \${hdNote}
-                        </div>
-                        <div class="result-grid">\${images}</div>
-                    \`;
-                }, 500);
-                
-            } catch (error) {
-                clearInterval(progressInterval);
-                
-                if (error.name === 'AbortError') {
-                    return;
-                }
-                
-                console.error(error);
-                resultDiv.innerHTML = \`
-                    <div class="error" style="animation: slideIn 0.5s ease-out;">
-                        <strong style="font-size: 18px;">❌ 失敗</strong>
-                        <p style="margin-top: 12px;">\${error.message}</p>
-                        <button onclick="generate()" style="margin-top: 16px; width: auto; padding: 10px 24px;">🔄 重試</button>
-                    </div>
-                \`;
-            }
-        }
-        
-        updateSize();
-        updateHistoryCount();
-        
-        document.getElementById('prompt').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                generate();
-            }
+<div id="generatePage" class="page active">
+<div class="main-content">
+<div class="left-panel">
+<div class="section-title">⚙️ 生成參數</div>
+<form id="generateForm">
+<div class="form-group">
+<label>模型選擇</label>
+<select id="model">
+<optgroup label="⚡ Z-Image 系列（默認）">
+<option value="zimage" selected>Z-Image Turbo ⚡ (6B 參數, 極速)</option>
+</optgroup>
+<optgroup label="🎨 Flux 系列">
+<option value="flux">Flux 標準版 (平衡速度與質量)</option>
+<option value="turbo">Flux Turbo ⚡ (超快速生成)</option>
+</optgroup>
+<optgroup label="🖼️ Kontext 系列（圖生圖）">
+<option value="kontext">Kontext 🎨 (支持參考圖像)</option>
+</optgroup>
+</select>
+<div class="input-hint">💰 價格: Z-Image (0.0002) | Flux (0.00012) | Turbo (0.0003) | Kontext (0.04)</div>
+</div>
+
+<div class="form-group">
+<label>尺寸預設</label>
+<select id="size">
+<option value="square-1k" selected>方形 1024x1024</option>
+<option value="square-1.5k">方形 1536x1536</option>
+<option value="square-2k">方形 2048x2048</option>
+<option value="portrait-9-16-hd">豎屏 1080x1920</option>
+<option value="landscape-16-9-hd">橫屏 1920x1080</option>
+<option value="instagram-square">Instagram 方形</option>
+<option value="wallpaper-fhd">桌布 Full HD</option>
+</select>
+</div>
+
+<div class="form-group">
+<label>藝術風格 🎨</label>
+<select id="style">
+${styleOptionsHTML}
+</select>
+<div class="style-hint">✨ ${stylesCount} 種風格可選，分 ${Object.keys(CONFIG.STYLE_CATEGORIES).length} 大類</div>
+</div>
+
+<div class="form-group">
+<label>質量模式</label>
+<select id="qualityMode">
+<option value="economy">經濟模式 (快速)</option>
+<option value="standard" selected>標準模式 (平衡)</option>
+<option value="ultra">超高清模式 (極致)</option>
+</select>
+</div>
+
+<a class="advanced-toggle" id="advancedToggle">▼ 進階選項</a>
+<div id="advancedSection" class="advanced-section">
+<div class="form-group">
+<label>Seed</label>
+<input type="number" id="seed" value="-1" min="-1" max="999999">
+<div class="input-hint">-1 = 隨機</div>
+</div>
+<div class="form-group">
+<label>生成數量</label>
+<input type="number" id="numOutputs" value="1" min="1" max="4">
+</div>
+<div class="form-group">
+<label><input type="checkbox" id="autoOptimize" checked> 自動優化參數</label>
+</div>
+<div class="form-group">
+<label><input type="checkbox" id="autoHD" checked> 自動HD增強</label>
+</div>
+</div>
+
+<button type="submit" class="btn btn-primary" id="generateBtn">🎨 開始生成</button>
+</form>
+</div>
+
+<div class="center-panel">
+<div class="section-title">🖼️ 生成結果</div>
+<div id="results">
+<div class="empty-state">
+<svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+<p style="font-size:16px;margin-bottom:10px">尚未生成任何圖像</p>
+<p style="font-size:14px">填寫左側參數並輸入提示詞後點擊生成</p>
+</div>
+</div>
+</div>
+
+<div class="right-panel">
+<div class="section-title">💬 提示詞</div>
+<div class="form-group">
+<label>正面提示詞</label>
+<textarea id="prompt" placeholder="描述你想生成的圖像...
+
+例如：
+• A beautiful sunset over mountains
+• 一隻可愛的貓咪在花園裡玩耍
+• Cyberpunk city at night, neon lights
+• Anime girl with blue hair" required></textarea>
+<div class="input-hint">✅ 支持中文自動翻譯</div>
+</div>
+
+<div class="form-group">
+<label>負面提示詞 (可選)</label>
+<textarea id="negativePrompt" placeholder="描述不想要的內容...
+
+例如：
+• blurry, low quality, distorted
+• ugly, deformed, bad anatomy" rows="4"></textarea>
+</div>
+
+<div class="form-group">
+<label>參考圖像 URL (可選)</label>
+<textarea id="referenceImages" placeholder="多張圖片用逗號分隔
+
+例如：
+https://example.com/image1.jpg,
+https://example.com/image2.jpg" rows="3"></textarea>
+<div class="input-hint">📌 支持圖生圖的模型：Kontext</div>
+</div>
+
+<div class="alert alert-info" style="margin-top:20px">
+<strong>🎨 風格提示</strong><br>
+當前已選: <span id="currentStyleName">無風格</span><br>
+<span id="styleDescription" style="font-size:11px;opacity:0.8">使用原始提示詞</span>
+</div>
+
+<div class="section-title" style="margin-top:25px">📋 當前配置預覽</div>
+<div class="prompt-display">
+<div class="label">模型</div>
+<div class="content" id="previewModel">Z-Image Turbo</div>
+</div>
+<div class="prompt-display">
+<div class="label">尺寸</div>
+<div class="content" id="previewSize">1024x1024</div>
+</div>
+<div class="prompt-display">
+<div class="label">風格</div>
+<div class="content" id="previewStyle">無風格</div>
+</div>
+<div class="prompt-display">
+<div class="label">API 端點</div>
+<div class="content" style="font-size:11px">${apiEndpoint}</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="historyPage" class="page">
+<div class="main-content" style="flex-direction:column;padding:20px">
+<div class="history-header">
+<div class="history-stats">
+<div class="stat-item">
+<div class="label">📊 總記錄數</div>
+<div class="value" id="historyTotal">0</div>
+</div>
+<div class="stat-item">
+<div class="label">💾 存儲空間</div>
+<div class="value" id="storageSize">0 KB</div>
+</div>
+<div class="stat-item">
+<div class="label">🎨 最近風格</div>
+<div class="value" id="recentStyle" style="font-size:14px">-</div>
+</div>
+</div>
+<div class="history-actions">
+<button class="btn btn-secondary" id="exportBtn" style="width:auto;padding:10px 20px">📥 導出記錄</button>
+<button class="btn btn-danger" id="clearBtn" style="width:auto;padding:10px 20px">🗑️ 清空記錄</button>
+</div>
+</div>
+<div id="historyList" style="padding:0 20px">
+<div class="empty-state">
+<p style="font-size:16px;margin-bottom:10px">暫無歷史記錄</p>
+<p style="font-size:14px">生成的圖像會自動保存在這裡</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="imageModal" class="modal">
+<button class="modal-close" id="modalCloseBtn">×</button>
+<div class="modal-content" id="modalContentDiv">
+<img id="modalImage" src="" alt="Preview">
+</div>
+</div>
+
+<script>
+// 風格配置數據
+const STYLE_PRESETS = ${JSON.stringify(CONFIG.STYLE_PRESETS)};
+const PRESET_SIZES = ${JSON.stringify(CONFIG.PRESET_SIZES)};
+
+// 導航切換
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    const pageName=this.dataset.page;
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById(pageName+'Page').classList.add('active');
+    this.classList.add('active');
+    if(pageName==='history')updateHistoryDisplay();
+  });
+});
+
+// 進階選項切換
+document.getElementById('advancedToggle').addEventListener('click',function(){
+  document.getElementById('advancedSection').classList.toggle('show');
+});
+
+// 更新風格描述
+function updateStyleDescription() {
+  const styleSelect = document.getElementById('style');
+  const selectedStyle = styleSelect.value;
+  const styleConfig = STYLE_PRESETS[selectedStyle];
+  
+  if (styleConfig) {
+    document.getElementById('currentStyleName').textContent = styleConfig.name;
+    document.getElementById('styleDescription').textContent = styleConfig.description || '無描述';
+  }
+}
+
+// 更新預覽
+function updatePreview(){
+  const model=document.getElementById('model').value;
+  const sizePreset=document.getElementById('size').value;
+  const style=document.getElementById('style').value;
+  
+  const sizeConfig=PRESET_SIZES[sizePreset]||PRESET_SIZES['square-1k'];
+  const styleConfig=STYLE_PRESETS[style];
+  
+  const modelNames={
+    'zimage':'Z-Image Turbo ⚡',
+    'flux':'Flux 標準版',
+    'turbo':'Flux Turbo ⚡',
+    'kontext':'Kontext 🎨'
+  };
+  
+  document.getElementById('previewModel').textContent=modelNames[model]||model;
+  document.getElementById('previewSize').textContent=sizeConfig.name+' ('+sizeConfig.width+'x'+sizeConfig.height+')';
+  document.getElementById('previewStyle').textContent=styleConfig ? styleConfig.icon + ' ' + styleConfig.name : '無風格';
+  
+  updateStyleDescription();
+}
+
+document.getElementById('model').addEventListener('change',updatePreview);
+document.getElementById('size').addEventListener('change',updatePreview);
+document.getElementById('style').addEventListener('change',updatePreview);
+updatePreview();
+
+// 歷史記錄管理
+const STORAGE_KEY='flux_ai_history';
+const MAX_HISTORY=100;
+
+function getHistory(){
+  try{
+    const data=localStorage.getItem(STORAGE_KEY);
+    return data?JSON.parse(data):[];
+  }catch(e){
+    console.error('Failed to load history:',e);
+    return[];
+  }
+}
+
+function saveHistory(history){
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(history));
+    updateHistoryStats();
+  }catch(e){
+    console.error('Failed to save history:',e);
+  }
+}
+
+function addToHistory(item){
+  let history=getHistory();
+  history.unshift({
+    ...item,
+    id:Date.now()+Math.random(),
+    timestamp:new Date().toISOString()
+  });
+  if(history.length>MAX_HISTORY)history=history.slice(0,MAX_HISTORY);
+  saveHistory(history);
+}
+
+function deleteFromHistory(id){
+  if(!confirm('確定要刪除這條記錄嗎？'))return;
+  let history=getHistory();
+  history=history.filter(item=>item.id!==id);
+  saveHistory(history);
+  updateHistoryDisplay();
+}
+
+function clearHistory(){
+  if(!confirm('確定要清空所有歷史記錄嗎？此操作不可恢復！'))return;
+  localStorage.removeItem(STORAGE_KEY);
+  updateHistoryDisplay();
+  updateHistoryStats();
+}
+
+function exportHistory(){
+  const history=getHistory();
+  const dataStr=JSON.stringify(history,null,2);
+  const dataBlob=new Blob([dataStr],{type:'application/json'});
+  const url=URL.createObjectURL(dataBlob);
+  const link=document.createElement('a');
+  link.href=url;
+  link.download='flux-ai-history-'+new Date().toISOString().split('T')[0]+'.json';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function updateHistoryStats(){
+  const history=getHistory();
+  document.getElementById('historyCount').textContent=history.length;
+  document.getElementById('historyTotal').textContent=history.length;
+  
+  const sizeKB=new Blob([JSON.stringify(history)]).size/1024;
+  document.getElementById('storageSize').textContent=sizeKB.toFixed(1)+' KB';
+  
+  if(history.length>0){
+    const styleConfig=STYLE_PRESETS[history[0].style];
+    document.getElementById('recentStyle').textContent=styleConfig ? styleConfig.name : history[0].style;
+  }else{
+    document.getElementById('recentStyle').textContent='-';
+  }
+}
+
+function updateHistoryDisplay(){
+  const history=getHistory();
+  const historyList=document.getElementById('historyList');
+  
+  if(history.length===0){
+    historyList.innerHTML='<div class="empty-state"><p style="font-size:16px;margin-bottom:10px">暫無歷史記錄</p><p style="font-size:14px">生成的圖像會自動保存在這裡</p></div>';
+    updateHistoryStats();
+    return;
+  }
+  
+  const galleryDiv=document.createElement('div');
+  galleryDiv.className='gallery';
+  
+  history.forEach(item=>{
+    const date=new Date(item.timestamp);
+    const timeStr=date.toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const styleConfig=STYLE_PRESETS[item.style];
+    const styleName=styleConfig ? styleConfig.icon + ' ' + styleConfig.name : item.style;
+    
+    const itemDiv=document.createElement('div');
+    itemDiv.className='gallery-item';
+    itemDiv.innerHTML=\`
+      <img src="\${item.url}" alt="History" loading="lazy">
+      <div class="gallery-info">
+        <div class="gallery-meta">
+          <span class="model-badge">\${item.model}</span>
+          <span class="seed-badge">Seed: \${item.seed}</span>
+        </div>
+        <div class="gallery-meta" style="margin-top:5px">
+          <span class="style-badge">\${styleName}</span>
+          <span class="time-badge">\${timeStr}</span>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:#6b7280">
+          \${item.width}x\${item.height} | \${item.quality_mode||'standard'}
+        </div>
+        <div class="gallery-actions">
+          <button class="action-btn reuse-btn">🔄 重用</button>
+          <button class="action-btn download-btn">💾 下載</button>
+          <button class="action-btn delete delete-btn">🗑️ 刪除</button>
+        </div>
+      </div>
+    \`;
+    
+    const img=itemDiv.querySelector('img');
+    img.addEventListener('click',function(){openModal(item.url)});
+    
+    const reuseBtn=itemDiv.querySelector('.reuse-btn');
+    reuseBtn.addEventListener('click',function(){reusePrompt(item.id)});
+    
+    const downloadBtn=itemDiv.querySelector('.download-btn');
+    downloadBtn.addEventListener('click',function(){downloadImage(item.url,item.seed)});
+    
+    const deleteBtn=itemDiv.querySelector('.delete-btn');
+    deleteBtn.addEventListener('click',function(){deleteFromHistory(item.id)});
+    
+    galleryDiv.appendChild(itemDiv);
+  });
+  
+  historyList.innerHTML='';
+  historyList.appendChild(galleryDiv);
+  updateHistoryStats();
+}
+
+function reusePrompt(id){
+  const history=getHistory();
+  const item=history.find(h=>h.id===id);
+  if(!item)return;
+  
+  document.getElementById('prompt').value=item.prompt||'';
+  document.getElementById('model').value=item.model||'zimage';
+  document.getElementById('seed').value=item.seed||-1;
+  document.getElementById('style').value=item.style||'none';
+  document.getElementById('negativePrompt').value=item.negative_prompt||'';
+  document.getElementById('referenceImages').value=(item.reference_images||[]).join(', ');
+  
+  updatePreview();
+  document.querySelector('[data-page="generate"]').click();
+  document.getElementById('prompt').focus();
+}
+
+function downloadImage(url,seed){
+  const link=document.createElement('a');
+  link.href=url;
+  link.download='flux-ai-'+seed+'-'+Date.now()+'.png';
+  link.click();
+}
+
+function openModal(url){
+  document.getElementById('modalImage').src=url;
+  document.getElementById('imageModal').classList.add('show');
+}
+
+function closeModal(){
+  document.getElementById('imageModal').classList.remove('show');
+}
+
+document.getElementById('exportBtn').addEventListener('click',exportHistory);
+document.getElementById('clearBtn').addEventListener('click',clearHistory);
+document.getElementById('modalCloseBtn').addEventListener('click',closeModal);
+document.getElementById('imageModal').addEventListener('click',function(e){
+  if(e.target===this)closeModal();
+});
+document.getElementById('modalContentDiv').addEventListener('click',function(e){
+  e.stopPropagation();
+});
+
+function displayGeneratedImages(images){
+  const history=getHistory();
+  const galleryDiv=document.createElement('div');
+  galleryDiv.className='gallery';
+  
+  const newImages=history.slice(0,images.length);
+  
+  newImages.forEach((item,index)=>{
+    const date=new Date(item.timestamp);
+    const timeStr=date.toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const styleConfig=STYLE_PRESETS[item.style];
+    const styleName=styleConfig ? styleConfig.icon + ' ' + styleConfig.name : item.style;
+    
+    const itemDiv=document.createElement('div');
+    itemDiv.className='gallery-item';
+    itemDiv.style.animation='fadeIn 0.5s ease-in';
+    itemDiv.innerHTML=\`
+      <img src="\${item.url}" alt="Generated \${index+1}" loading="lazy">
+      <div class="gallery-info">
+        <div style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);color:#fff;padding:4px 8px;border-radius:6px;font-size:10px;font-weight:700;margin-bottom:8px;text-align:center">
+          ✅ 剛剛生成
+        </div>
+        <div class="gallery-meta">
+          <span class="model-badge">\${item.model}</span>
+          <span class="seed-badge">Seed: \${item.seed}</span>
+        </div>
+        <div class="gallery-meta" style="margin-top:5px">
+          <span class="style-badge">\${styleName}</span>
+          <span class="time-badge">\${timeStr}</span>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:#6b7280">
+          \${item.width}x\${item.height} | \${item.quality_mode||'standard'}\${item.generation_mode?' | '+item.generation_mode:''}
+        </div>
+        <div class="gallery-actions">
+          <button class="action-btn reuse-result-btn">🔄 重用</button>
+          <button class="action-btn download-result-btn">💾 下載</button>
+          <button class="action-btn view-history-btn">📚 查看歷史</button>
+        </div>
+      </div>
+    \`;
+    
+    const img=itemDiv.querySelector('img');
+    img.addEventListener('click',function(){openModal(item.url)});
+    
+    const reuseBtn=itemDiv.querySelector('.reuse-result-btn');
+    reuseBtn.addEventListener('click',function(){reusePrompt(item.id)});
+    
+    const downloadBtn=itemDiv.querySelector('.download-result-btn');
+    downloadBtn.addEventListener('click',function(){downloadImage(item.url,item.seed)});
+    
+    const viewBtn=itemDiv.querySelector('.view-history-btn');
+    viewBtn.addEventListener('click',function(){
+      document.querySelector('[data-page="history"]').click();
+    });
+    
+    galleryDiv.appendChild(itemDiv);
+  });
+  
+  const resultsDiv=document.getElementById('results');
+  resultsDiv.innerHTML='';
+  
+  const successDiv=document.createElement('div');
+  successDiv.className='alert alert-success';
+  successDiv.innerHTML='<strong>✅ 生成成功！</strong> 已生成 '+images.length+' 張圖片並保存到歷史記錄';
+  resultsDiv.appendChild(successDiv);
+  resultsDiv.appendChild(galleryDiv);
+}
+
+// 表單提交
+const form=document.getElementById('generateForm');
+const resultsDiv=document.getElementById('results');
+const generateBtn=document.getElementById('generateBtn');
+
+form.addEventListener('submit',async(e)=>{
+  e.preventDefault();
+  
+  const prompt=document.getElementById('prompt').value;
+  if(!prompt.trim()){
+    alert('請輸入提示詞');
+    document.getElementById('prompt').focus();
+    return;
+  }
+  
+  const model=document.getElementById('model').value;
+  const sizePreset=document.getElementById('size').value;
+  const style=document.getElementById('style').value;
+  const qualityMode=document.getElementById('qualityMode').value;
+  const seed=parseInt(document.getElementById('seed').value);
+  const numOutputs=parseInt(document.getElementById('numOutputs').value);
+  const negativePrompt=document.getElementById('negativePrompt').value;
+  const autoOptimize=document.getElementById('autoOptimize').checked;
+  const autoHD=document.getElementById('autoHD').checked;
+  const refImagesInput=document.getElementById('referenceImages').value;
+  
+  let referenceImages=[];
+  if(refImagesInput.trim()){
+    referenceImages=refImagesInput.split(',').map(url=>url.trim()).filter(url=>url);
+  }
+  
+  const sizeConfig=PRESET_SIZES[sizePreset]||PRESET_SIZES['square-1k'];
+  
+  generateBtn.disabled=true;
+  generateBtn.innerHTML='<div class="spinner"></div>生成中...';
+  resultsDiv.innerHTML='<div class="loading"><div class="spinner"></div><p>正在生成圖像，請稍候...</p><p style="font-size:12px;color:#6b7280;margin-top:10px">API: ${apiEndpoint}</p></div>';
+  
+  try{
+    const response=await fetch('/_internal/generate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        prompt,
+        model,
+        width:sizeConfig.width,
+        height:sizeConfig.height,
+        style,
+        quality_mode:qualityMode,
+        seed:seed,
+        n:numOutputs,
+        negative_prompt:negativePrompt,
+        auto_optimize:autoOptimize,
+        auto_hd:autoHD,
+        reference_images:referenceImages
+      })
+    });
+    
+    const contentType=response.headers.get('content-type');
+    
+    if(!response.ok){
+      const errorText=await response.text();
+      let errorMsg='生成失敗';
+      try{
+        const errorJson=JSON.parse(errorText);
+        errorMsg=errorJson.error?.message||errorMsg;
+      }catch(e){
+        errorMsg=errorText.substring(0,200);
+      }
+      resultsDiv.innerHTML='<div class="alert alert-error"><strong>錯誤:</strong> '+errorMsg+'</div>';
+      
+      if(response.status===401||response.status===403){
+        resultsDiv.innerHTML+='<div class="alert alert-warning"><strong>⚠️ 認證問題:</strong> 請確保已設置有效的 POLLINATIONS_API_KEY 環境變量。<br>使用命令: <code style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:4px">wrangler secret put POLLINATIONS_API_KEY</code></div>';
+      }
+      return;
+    }
+    
+    if(contentType&&contentType.startsWith('image/')){
+      const imageBlob=await response.blob();
+      const imageUrl=URL.createObjectURL(imageBlob);
+      
+      const modelUsed=response.headers.get('X-Model')||model;
+      const seedUsed=parseInt(response.headers.get('X-Seed'))||seed;
+      const widthUsed=parseInt(response.headers.get('X-Width'))||sizeConfig.width;
+      const heightUsed=parseInt(response.headers.get('X-Height'))||sizeConfig.height;
+      const qualityUsed=response.headers.get('X-Quality-Mode')||qualityMode;
+      const styleUsed=response.headers.get('X-Style')||style;
+      const genMode=response.headers.get('X-Generation-Mode')||'文生圖';
+      
+      addToHistory({
+        url:imageUrl,
+        prompt:prompt,
+        model:modelUsed,
+        seed:seedUsed,
+        width:widthUsed,
+        height:heightUsed,
+        style:styleUsed,
+        quality_mode:qualityUsed,
+        negative_prompt:negativePrompt,
+        reference_images:referenceImages,
+        generation_mode:genMode
+      });
+      
+      displayGeneratedImages([{
+        url:imageUrl,
+        model:modelUsed,
+        seed:seedUsed,
+        width:widthUsed,
+        height:heightUsed,
+        quality_mode:qualityUsed,
+        style:styleUsed
+      }]);
+    }else if(contentType&&contentType.includes('application/json')){
+      const data=await response.json();
+      
+      if(data.error){
+        resultsDiv.innerHTML='<div class="alert alert-error"><strong>錯誤:</strong> '+data.error.message+'</div>';
+      }else{
+        const images=data.data.map(item=>{
+          addToHistory({
+            url:item.image,
+            prompt:prompt,
+            model:item.model,
+            seed:item.seed,
+            width:item.width,
+            height:item.height,
+            style:item.style,
+            quality_mode:item.quality_mode,
+            negative_prompt:negativePrompt,
+            reference_images:referenceImages,
+            generation_mode:item.generation_mode
+          });
+          return item;
         });
-        
-        console.log('%c🎨 v${CONFIG.PROJECT_VERSION} - Auto HD', 'font-size: 16px; color: #f59e0b;');
-    </script>
+        displayGeneratedImages(images);
+      }
+    }
+  }catch(error){
+    resultsDiv.innerHTML='<div class="alert alert-error"><strong>錯誤:</strong> '+error.message+'</div>';
+  }finally{
+    generateBtn.disabled=false;
+    generateBtn.innerHTML='🎨 開始生成';
+  }
+});
+
+window.addEventListener('DOMContentLoaded',()=>{
+  updateHistoryStats();
+  updatePreview();
+});
+</script>
 </body>
 </html>`;
-
-  return new Response(html, { 
-    headers: corsHeaders({ 'Content-Type': 'text/html; charset=utf-8' })
+  
+  return new Response(html, {
+    headers: {
+      'Content-Type': 'text/html;charset=UTF-8',
+      ...corsHeaders()
+    }
   });
 }
